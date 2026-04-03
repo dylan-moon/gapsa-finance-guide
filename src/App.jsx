@@ -947,11 +947,11 @@ function EventPlanner() {
     const dl = deadlines;
     const capLabel = alcoholExpandsCap ? "Food & Alcohol Cap" : "Total Event Cap";
     const deadlineRows = [
-      { label: "GAPSA Application Deadline", date: dl?.applicationDeadline, note: dl?.gapsaSubmission ? `Next cycle: submit by ${fmtDate(dl.gapsaSubmission.date)}` : "" },
-      { label: "Submit Newsletter Event Listing", date: dl?.newsletterDeadline, note: "2 weeks before event" },
-      hasAlcohol && { label: "University Life Alcohol Registration", date: dl?.alcoholDeadline, note: "10 business days before event" },
-      { label: "Payment Requests Due", date: dl?.paymentDeadline, note: "" },
-      { label: "New Vendor Payment Requests Due", date: dl?.newVendorDeadline, note: "3–4 weeks for new vendors" },
+      { label: "Submit GAPSA Funding Application", url: CONFIG.funds[0].applicationUrl, date: dl?.applicationDeadline, note: dl?.gapsaSubmission ? `Next cycle: submit by ${fmtDate(dl.gapsaSubmission.date)}` : "" },
+      { label: "Submit Newsletter Event Listing",  url: CONFIG.compliance.newsletterUrl, date: dl?.newsletterDeadline, note: "2 weeks before event" },
+      hasAlcohol && { label: "University Life Alcohol Registration", url: CONFIG.compliance.alcoholRegistrationUrl, date: dl?.alcoholDeadline, note: "10 business days before event" },
+      { label: "Submit Payment Requests",          url: CONFIG.compliance.paymentRequestUrl, date: dl?.paymentDeadline, note: "" },
+      { label: "New Vendor Payment Requests Due",  url: CONFIG.compliance.paymentRequestUrl, date: dl?.newVendorDeadline, note: "3–4 weeks for new vendors" },
     ].filter(Boolean);
 
     const complianceItems = [
@@ -1009,7 +1009,7 @@ ${dl ? `<h2>Key Deadlines</h2>
 <table>
   <thead><tr><th>Deadline</th><th>Date</th><th>Note</th></tr></thead>
   <tbody>
-    ${deadlineRows.map(r => `<tr><td${dl && r.date < new Date() ? ' class="urgent"' : ""}>${r.label}</td><td class="right">${fmtDate(r.date)}</td><td class="note">${r.note}</td></tr>`).join("")}
+    ${deadlineRows.map(r => `<tr><td${r.date < new Date() ? ' class="urgent"' : ""}>${r.url ? `<a href="${r.url}" style="color:inherit">${r.label}</a>` : r.label}</td><td class="right">${fmtDate(r.date)}</td><td class="note">${r.note}</td></tr>`).join("")}
   </tbody>
 </table>` : ""}
 
@@ -1300,21 +1300,26 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               </h4>
               {[
                 {
-                  label: "GAPSA Application Must Be In By",
+                  label: "Submit GAPSA Funding Application",
                   date: deadlines.applicationDeadline,
                   note: deadlines.gapsaSubmission
                     ? `Next cycle: submit by ${fmtDate(deadlines.gapsaSubmission.date)}`
                     : "Check GAPSA for open cycles",
+                  url: CONFIG.funds[0].applicationUrl,
                   urgent: deadlines.applicationDeadline < new Date(),
                 },
-                { label: "Submit Newsletter Event Listing",  date: deadlines.newsletterDeadline,  urgent: deadlines.newsletterDeadline < new Date() },
-                hasAlcohol && { label: "University Life Alcohol Registration", date: deadlines.alcoholDeadline, note: "10 business days before event", urgent: deadlines.alcoholDeadline < new Date() },
-                { label: "Payment Requests Due",             date: deadlines.paymentDeadline,      urgent: deadlines.paymentDeadline < new Date() },
-                { label: "New Vendor Payment Requests Due",  date: deadlines.newVendorDeadline,    note: "3–4 weeks for new vendors",  urgent: deadlines.newVendorDeadline < new Date() },
+                { label: "Submit Newsletter Event Listing",  date: deadlines.newsletterDeadline,  url: CONFIG.compliance.newsletterUrl,          urgent: deadlines.newsletterDeadline < new Date() },
+                hasAlcohol && { label: "University Life Alcohol Registration", date: deadlines.alcoholDeadline, note: "10 business days before event", url: CONFIG.compliance.alcoholRegistrationUrl, urgent: deadlines.alcoholDeadline < new Date() },
+                { label: "Submit Payment Requests",          date: deadlines.paymentDeadline,      url: CONFIG.compliance.paymentRequestUrl,       urgent: deadlines.paymentDeadline < new Date() },
+                { label: "New Vendor Payment Requests Due",  date: deadlines.newVendorDeadline,    url: CONFIG.compliance.paymentRequestUrl, note: "3–4 weeks for new vendors", urgent: deadlines.newVendorDeadline < new Date() },
               ].filter(Boolean).map((dl, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "9px 0", borderBottom: i < 3 ? "1px solid #f0f0f0" : "none" }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: dl.urgent ? PENN_RED : "#333" }}>{dl.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: dl.urgent ? PENN_RED : "#333" }}>
+                      {dl.url
+                        ? <a href={dl.url} target="_blank" rel="noreferrer" style={{ color: dl.urgent ? PENN_RED : PENN_BLUE, textDecoration: "none", borderBottom: `1px solid ${dl.urgent ? PENN_RED : "#bfdbfe"}` }}>{dl.label} <ExternalLink size={10} style={{ verticalAlign: "middle" }} /></a>
+                        : dl.label}
+                    </div>
                     {dl.note && <div style={{ fontSize: 11, color: "#aaa" }}>{dl.note}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
