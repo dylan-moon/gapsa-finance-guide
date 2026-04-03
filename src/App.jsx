@@ -989,6 +989,62 @@ function EventPlanner() {
     window.open(`${CONFIG.funds[0].applicationUrl}?${params.toString()}`, "_blank");
   };
 
+  const downloadCalendar = () => {
+    if (!deadlines) return;
+    const icsDate = (d) => {
+      const dt = new Date(d);
+      return `${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,"0")}${String(dt.getDate()).padStart(2,"0")}`;
+    };
+    const icsDateNext = (d) => {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() + 1);
+      return `${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,"0")}${String(dt.getDate()).padStart(2,"0")}`;
+    };
+    const now = new Date().toISOString().replace(/[-:]/g,"").split(".")[0] + "Z";
+    const eventLabel = eventDate ? `(${fmtDate(eventDate, { month: "short", day: "numeric" })})` : "";
+    const rows = [
+      { summary: `GAPSA Application Due ${eventLabel}`, date: deadlines.applicationDeadline, url: CONFIG.funds[0].applicationUrl, description: "Submit the Universal Funding Application at least 4 weeks before your event." },
+      { summary: `GAPSA Newsletter Submission Due ${eventLabel}`, date: deadlines.newsletterDeadline, url: CONFIG.compliance.newsletterUrl, description: "Submit your event listing to the GAPSA newsletter (2 weeks before event)." },
+      hasAlcohol && { summary: `Alcohol Event Registration Due ${eventLabel}`, date: deadlines.alcoholDeadline, url: CONFIG.compliance.alcoholRegistrationUrl, description: "Register your event with University Life — required 10 business days before any event with alcohol." },
+      { summary: `Payment Requests Due ${eventLabel}`, date: deadlines.paymentDeadline, url: CONFIG.compliance.paymentRequestUrl, description: "Submit all payment requests at least 1 week before your event." },
+      { summary: `New Vendor Payment Requests Due ${eventLabel}`, date: deadlines.newVendorDeadline, url: CONFIG.compliance.paymentRequestUrl, description: "Submit payment requests for any new vendors 3–4 weeks before your event." },
+    ].filter(Boolean);
+
+    const vevents = rows.map((r, i) => [
+      "BEGIN:VEVENT",
+      `UID:gapsa-deadline-${i}-${Date.now()}@gapsa-finance-guide`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${icsDate(r.date)}`,
+      `DTEND;VALUE=DATE:${icsDateNext(r.date)}`,
+      `SUMMARY:${r.summary}`,
+      `DESCRIPTION:${r.description}`,
+      `URL:${r.url}`,
+      "BEGIN:VALARM",
+      "TRIGGER:-P1D",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:Reminder: ${r.summary}`,
+      "END:VALARM",
+      "END:VEVENT",
+    ].join("\r\n")).join("\r\n");
+
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//GAPSA Finance Guide//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      vevents,
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `gapsa-event-deadlines${eventDate ? "-" + eventDate : ""}.ics`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   const downloadSummaryPDF = () => {
     const dl = deadlines;
     const capLabel = alcoholExpandsCap ? "Food & Alcohol Cap" : "Total Event Cap";
@@ -1388,9 +1444,14 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
           {/* Deadline alerts */}
           {deadlines && (
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 14 }}>
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6 }}>
-                <Calendar size={15} /> Key Deadlines for Your Event
-              </h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Calendar size={15} /> Key Deadlines for Your Event
+                </h4>
+                <button onClick={downloadCalendar} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", color: PENN_BLUE, border: `1px solid #bfdbfe`, borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                  <Calendar size={12} /> Add to Calendar
+                </button>
+              </div>
               {[
                 {
                   label: "Submit GAPSA Funding Application",
