@@ -963,59 +963,30 @@ function EventPlanner() {
     return true;
   };
 
-  const [copied, setCopied] = useState(false);
-
-  const copyForApplication = () => {
+  const openPrefilledApplication = () => {
     const catTotal = (id) => lineItems.filter(li => li.category === id).reduce((s, li) => s + (Number(li.amount) || 0), 0);
-    const foodTotal = catTotal("food");
-    const alcoholTotal = catTotal("alcohol");
-    const printingTotal = catTotal("printing");
-    const merchTotal = catTotal("merchandise");
-    const digitalAdsTotal = catTotal("digital_ads");
-    const equipTotal = catTotal("equipment");
-    const giftsTotal = catTotal("gifts");
-    const venueTotal = catTotal("venue");
-    const deliveryTotal = catTotal("delivery");
-    const speakerTotal = catTotal("speaker");
-    const otherTotal = catTotal("other");
-
-    const lines = [
-      "GAPSA Universal Funding Application — Pre-filled Budget Data",
-      "=".repeat(60),
-      "",
-      "── SECTION 3: EVENT INFORMATION ──────────────────────────",
-      `Event Date:           ${eventDate ? fmtDate(eventDate, { month: "long", day: "numeric", year: "numeric" }) : "(enter date)"}`,
-      `Event Type:           ${selectedType?.label || "(select type)"}`,
-      `Estimated Attendance: ${attendees}`,
-      `Alcohol Served:       ${hasAlcohol ? "Yes" : "No"}`,
-      "",
-      "── SECTION 4: BUDGET DETAILS ─────────────────────────────",
-      `Total Budget:                 $${totalBudget.toFixed(2)}`,
-      `Amount Requested from GAPSA:  ${gapsaAmountNum > 0 ? "$" + gapsaAmountNum.toFixed(2) : "(enter amount)"}`,
-      "",
-      "Itemized Budget (paste each line into the UFA form):",
-      `  Food & Beverages (nonalcoholic) / Catering:  $${foodTotal.toFixed(2)}`,
-      `  Alcoholic Beverages:                         $${alcoholTotal.toFixed(2)}`,
-      `  Printing Costs:                              $${printingTotal.toFixed(2)}`,
-      `  Merchandise / Swag:                          $${merchTotal.toFixed(2)}`,
-      `  Digital Advertising:                         $${digitalAdsTotal.toFixed(2)}`,
-      `  Equipment:                                   $${equipTotal.toFixed(2)}`,
-      `  Gifts & Prizes:                              $${giftsTotal.toFixed(2)}`,
-      `  Facilities Rental & Security:                $${venueTotal.toFixed(2)}`,
-      `  Delivery Services:                           $${deliveryTotal.toFixed(2)}`,
-      `  Honoraria / Speaker Fee:                     $${speakerTotal.toFixed(2)}`,
-      `  Other:                                       $${otherTotal.toFixed(2)}`,
-      "",
-      "── LINE ITEM DETAIL ───────────────────────────────────────",
-      ...lineItems.map(li => `  ${(BUDGET_CATEGORIES.find(c => c.id === li.category)?.label || li.category).padEnd(24)} ${li.description.padEnd(30)} $${Number(li.amount).toFixed(2)}`),
-      "",
-      "Apply here: " + CONFIG.funds[0].applicationUrl,
-    ];
-
-    navigator.clipboard.writeText(lines.join("\n")).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
+    // Convert stored YYYY-MM-DD to MM-DD-YYYY as expected by the UFA form
+    const formattedDate = eventDate
+      ? eventDate.split("-").slice(1).concat(eventDate.split("-")[0]).join("-")
+      : "";
+    // Field labels must match the UFA form exactly (case-sensitive per Smartsheet docs)
+    const params = new URLSearchParams();
+    if (formattedDate)     params.set("List the dates of your event(s) or program(s)", formattedDate);
+    if (attendees)         params.set("What is the estimated attendance for your event?", String(attendees));
+    if (totalBudget)       params.set("What is the total budget of your event(s)?", String(Math.round(totalBudget)));
+    if (gapsaAmountNum)    params.set("What portion are you requesting from GAPSA?", String(Math.round(gapsaAmountNum)));
+    params.set("Food & Beverages (nonalcoholic) / Catering", String(Math.round(catTotal("food"))));
+    params.set("Alcoholic Beverages",        String(Math.round(catTotal("alcohol"))));
+    params.set("Printing Costs",             String(Math.round(catTotal("printing"))));
+    params.set("Merchandise/Swag",           String(Math.round(catTotal("merchandise"))));
+    params.set("Digital Advertising",        String(Math.round(catTotal("digital_ads"))));
+    params.set("Equipment",                  String(Math.round(catTotal("equipment"))));
+    params.set("Gifts & Prizes",             String(Math.round(catTotal("gifts"))));
+    params.set("Facilities Rental & Security", String(Math.round(catTotal("venue"))));
+    params.set("Delivery Services",          String(Math.round(catTotal("delivery"))));
+    params.set("Honoraria/Speaker Fee",      String(Math.round(catTotal("speaker"))));
+    if (catTotal("other") > 0) params.set("Other expenses - Please specify", String(Math.round(catTotal("other"))));
+    window.open(`${CONFIG.funds[0].applicationUrl}?${params.toString()}`, "_blank");
   };
 
   const downloadSummaryPDF = () => {
@@ -1525,8 +1496,8 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
         {step < 3
           ? <button onClick={() => setStep(step + 1)} disabled={!canAdvanceStep()} style={{ display: "flex", alignItems: "center", gap: 4, background: canAdvanceStep() ? PENN_BLUE : "#ccc", color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: canAdvanceStep() ? "pointer" : "default", fontSize: 13, fontWeight: 600, border: "none" }}>Next <ChevronRight size={15} /></button>
           : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={copyForApplication} style={{ display: "flex", alignItems: "center", gap: 5, background: copied ? "#ecfdf5" : "#fff", color: copied ? "#065f46" : PENN_BLUE, padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1.5px solid ${copied ? "#16a34a" : PENN_BLUE}`, transition: "all 0.2s" }}>
-                <ClipboardList size={14} /> {copied ? "Copied!" : "Copy for Application"}
+              <button onClick={openPrefilledApplication} style={{ display: "flex", alignItems: "center", gap: 5, background: PENN_BLUE, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>
+                <ExternalLink size={14} /> Open Pre-filled Application
               </button>
               <button onClick={downloadSummaryPDF} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", color: "#555", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "1.5px solid #ddd" }}>
                 <ClipboardList size={14} /> Save as PDF
