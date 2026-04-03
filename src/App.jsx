@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { ChevronRight, ChevronLeft, Search, BookOpen, ExternalLink, AlertTriangle, DollarSign, Calendar, Users, ClipboardList, Info, Plus, Trash2, Star, CheckCircle, Clock } from "lucide-react";
 
 // ============================================================
@@ -889,23 +889,31 @@ function VendorSuggestions({ category, attendees, onSelectVendor }) {
   );
 }
 
+const PLANNER_STORAGE_KEY = "gapsa_planner_v1";
+
+const loadPlannerState = () => {
+  try { return JSON.parse(localStorage.getItem(PLANNER_STORAGE_KEY)) || {}; } catch { return {}; }
+};
+
 function EventPlanner() {
-  const [step, setStep] = useState(0);
+  const saved = useMemo(loadPlannerState, []);
 
-  // Step 1 state
-  const [eventDate, setEventDate] = useState("");
-  const [eventType, setEventType] = useState(null);
-  const [hasAlcohol, setHasAlcohol] = useState(false);
+  const [step,       setStep]       = useState(saved.step       ?? 0);
+  const [eventDate,  setEventDate]  = useState(saved.eventDate  ?? "");
+  const [eventType,  setEventType]  = useState(saved.eventType  ?? null);
+  const [hasAlcohol, setHasAlcohol] = useState(saved.hasAlcohol ?? false);
+  const [attendees,  setAttendees]  = useState(saved.attendees  ?? 50);
+  const [lineItems,  setLineItems]  = useState(saved.lineItems  ?? []);
+  const [newCat,     setNewCat]     = useState("food");
+  const [newDesc,    setNewDesc]    = useState("");
+  const [newAmt,     setNewAmt]     = useState("");
+  const [gapsaAmount, setGapsaAmount] = useState(saved.gapsaAmount ?? "");
 
-  // Step 2 state
-  const [attendees, setAttendees] = useState(50);
-
-  // Step 3 state
-  const [lineItems, setLineItems] = useState([]);
-  const [newCat, setNewCat] = useState("food");
-  const [newDesc, setNewDesc] = useState("");
-  const [newAmt, setNewAmt] = useState("");
-  const [gapsaAmount, setGapsaAmount] = useState("");
+  useEffect(() => {
+    localStorage.setItem(PLANNER_STORAGE_KEY, JSON.stringify(
+      { step, eventDate, eventType, hasAlcohol, attendees, lineItems, gapsaAmount }
+    ));
+  }, [step, eventDate, eventType, hasAlcohol, attendees, lineItems, gapsaAmount]);
 
   const selectedType = CONFIG.eventTypes.find((e) => e.id === eventType);
   const deadlines = eventDate ? computeEventDeadlines(eventDate) : null;
@@ -941,6 +949,61 @@ function EventPlanner() {
     if (step === 0) return !!eventDate && !!eventType;
     if (step === 1) return attendees >= 1;
     return true;
+  };
+
+  const [copied, setCopied] = useState(false);
+
+  const copyForApplication = () => {
+    const catTotal = (id) => lineItems.filter(li => li.category === id).reduce((s, li) => s + (Number(li.amount) || 0), 0);
+    const foodTotal = catTotal("food");
+    const alcoholTotal = catTotal("alcohol");
+    const printingTotal = catTotal("printing");
+    const merchTotal = catTotal("merchandise");
+    const digitalAdsTotal = catTotal("digital_ads");
+    const equipTotal = catTotal("equipment");
+    const giftsTotal = catTotal("gifts");
+    const venueTotal = catTotal("venue");
+    const deliveryTotal = catTotal("delivery");
+    const speakerTotal = catTotal("speaker");
+    const otherTotal = catTotal("other");
+
+    const lines = [
+      "GAPSA Universal Funding Application — Pre-filled Budget Data",
+      "=".repeat(60),
+      "",
+      "── SECTION 3: EVENT INFORMATION ──────────────────────────",
+      `Event Date:           ${eventDate ? fmtDate(eventDate, { month: "long", day: "numeric", year: "numeric" }) : "(enter date)"}`,
+      `Event Type:           ${selectedType?.label || "(select type)"}`,
+      `Estimated Attendance: ${attendees}`,
+      `Alcohol Served:       ${hasAlcohol ? "Yes" : "No"}`,
+      "",
+      "── SECTION 4: BUDGET DETAILS ─────────────────────────────",
+      `Total Budget:                 $${totalBudget.toFixed(2)}`,
+      `Amount Requested from GAPSA:  ${gapsaAmountNum > 0 ? "$" + gapsaAmountNum.toFixed(2) : "(enter amount)"}`,
+      "",
+      "Itemized Budget (paste each line into the UFA form):",
+      `  Food & Beverages (nonalcoholic) / Catering:  $${foodTotal.toFixed(2)}`,
+      `  Alcoholic Beverages:                         $${alcoholTotal.toFixed(2)}`,
+      `  Printing Costs:                              $${printingTotal.toFixed(2)}`,
+      `  Merchandise / Swag:                          $${merchTotal.toFixed(2)}`,
+      `  Digital Advertising:                         $${digitalAdsTotal.toFixed(2)}`,
+      `  Equipment:                                   $${equipTotal.toFixed(2)}`,
+      `  Gifts & Prizes:                              $${giftsTotal.toFixed(2)}`,
+      `  Facilities Rental & Security:                $${venueTotal.toFixed(2)}`,
+      `  Delivery Services:                           $${deliveryTotal.toFixed(2)}`,
+      `  Honoraria / Speaker Fee:                     $${speakerTotal.toFixed(2)}`,
+      `  Other:                                       $${otherTotal.toFixed(2)}`,
+      "",
+      "── LINE ITEM DETAIL ───────────────────────────────────────",
+      ...lineItems.map(li => `  ${(BUDGET_CATEGORIES.find(c => c.id === li.category)?.label || li.category).padEnd(24)} ${li.description.padEnd(30)} $${Number(li.amount).toFixed(2)}`),
+      "",
+      "Apply here: " + CONFIG.funds[0].applicationUrl,
+    ];
+
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
   };
 
   const downloadSummaryPDF = () => {
@@ -1207,6 +1270,25 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
                   .filter((c) => c.id !== "alcohol" || hasAlcohol)
                   .map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
+            </div>
+            {(() => {
+              const limitKey = BUDGET_CATEGORIES.find(c => c.id === newCat)?.limitKey;
+              const lim = limitKey ? CONFIG.spendingLimits[limitKey] : null;
+              if (!lim) return null;
+              const capVal = typeof lim.max === "number"
+                ? `${fmt(lim.max)} ${lim.unit}${lim.semesterCap ? ` (up to ${fmt(lim.semesterCap)}/semester)` : ""}`
+                : `${lim.max} ${lim.unit}`;
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, marginBottom: 8, padding: "6px 10px", background: "#eff6ff", borderRadius: 6 }}>
+                  <Info size={12} color="#2563eb" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#1e40af" }}>
+                    <strong>Spending cap:</strong> {capVal}
+                    {lim.notes ? <span style={{ color: "#3b82f6" }}> — {lim.notes}</span> : null}
+                  </span>
+                </div>
+              );
+            })()}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
                 style={{ flex: 1, minWidth: 140, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13 }} />
               <input type="number" placeholder="Amount ($)" value={newAmt} onChange={(e) => setNewAmt(e.target.value)}
@@ -1405,11 +1487,14 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
           : <div />}
         {step < 3
           ? <button onClick={() => setStep(step + 1)} disabled={!canAdvanceStep()} style={{ display: "flex", alignItems: "center", gap: 4, background: canAdvanceStep() ? PENN_BLUE : "#ccc", color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: canAdvanceStep() ? "pointer" : "default", fontSize: 13, fontWeight: 600, border: "none" }}>Next <ChevronRight size={15} /></button>
-          : <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={downloadSummaryPDF} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", color: PENN_BLUE, padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1.5px solid ${PENN_BLUE}` }}>
+          : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={copyForApplication} style={{ display: "flex", alignItems: "center", gap: 5, background: copied ? "#ecfdf5" : "#fff", color: copied ? "#065f46" : PENN_BLUE, padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1.5px solid ${copied ? "#16a34a" : PENN_BLUE}`, transition: "all 0.2s" }}>
+                <ClipboardList size={14} /> {copied ? "Copied!" : "Copy for Application"}
+              </button>
+              <button onClick={downloadSummaryPDF} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", color: "#555", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "1.5px solid #ddd" }}>
                 <ClipboardList size={14} /> Save as PDF
               </button>
-              <button onClick={() => { setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>
+              <button onClick={() => { localStorage.removeItem(PLANNER_STORAGE_KEY); setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>
             </div>}
       </div>
     </div>
