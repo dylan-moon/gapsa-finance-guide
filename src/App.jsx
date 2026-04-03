@@ -1732,7 +1732,7 @@ function FormsLinks() {
 // ============================================================
 
 export default function GAPSAFinanceWizard() {
-  const [mode, setMode] = useState("wizard");
+  const [mode, setMode] = useState("planner");
   const nextDeadline = getNextDeadline();
 
   return (
