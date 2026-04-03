@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { ChevronRight, ChevronLeft, Search, BookOpen, ExternalLink, AlertTriangle, DollarSign, Calendar, Users, ClipboardList, Info, Plus, Trash2, Star, CheckCircle, Clock } from "lucide-react";
+import { ChevronRight, ChevronLeft, Search, BookOpen, ExternalLink, AlertTriangle, DollarSign, Calendar, Users, ClipboardList, Info, Plus, Trash2, Star, CheckCircle, Clock, Pencil, Check, X } from "lucide-react";
 
 // ============================================================
 // CONFIGURATION — All guideline numbers, limits, and deadlines
@@ -909,6 +909,18 @@ function EventPlanner() {
   const [newAmt,     setNewAmt]     = useState("");
   const [gapsaAmount, setGapsaAmount] = useState(saved.gapsaAmount ?? "");
 
+  const [editingId,  setEditingId]  = useState(null);
+  const [editCat,    setEditCat]    = useState("");
+  const [editDesc,   setEditDesc]   = useState("");
+  const [editAmt,    setEditAmt]    = useState("");
+
+  const startEdit = (li) => { setEditingId(li.id); setEditCat(li.category); setEditDesc(li.description); setEditAmt(String(li.amount)); };
+  const saveEdit  = () => {
+    if (!editDesc || !editAmt) return;
+    setLineItems(lineItems.map(li => li.id === editingId ? { ...li, category: editCat, description: editDesc, amount: Number(editAmt) } : li));
+    setEditingId(null);
+  };
+
   useEffect(() => {
     localStorage.setItem(PLANNER_STORAGE_KEY, JSON.stringify(
       { step, eventDate, eventType, hasAlcohol, attendees, lineItems, gapsaAmount }
@@ -1270,7 +1282,15 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
                   .filter((c) => c.id !== "alcohol" || hasAlcohol)
                   .map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
+              <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
+                style={{ flex: 1, minWidth: 120, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13 }} />
+              <input type="number" placeholder="Amount ($)" value={newAmt} onChange={(e) => setNewAmt(e.target.value)}
+                style={{ width: 110, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13 }} />
+              <button onClick={() => addLineItem()} style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 600 }}>
+                <Plus size={14} /> Add
+              </button>
             </div>
+
             {(() => {
               const limitKey = BUDGET_CATEGORIES.find(c => c.id === newCat)?.limitKey;
               const lim = limitKey ? CONFIG.spendingLimits[limitKey] : null;
@@ -1279,24 +1299,15 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
                 ? `${fmt(lim.max)} ${lim.unit}${lim.semesterCap ? ` (up to ${fmt(lim.semesterCap)}/semester)` : ""}`
                 : `${lim.max} ${lim.unit}`;
               return (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, marginBottom: 8, padding: "6px 10px", background: "#eff6ff", borderRadius: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "5px 10px", background: "#eff6ff", borderRadius: 6 }}>
                   <Info size={12} color="#2563eb" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: "#1e40af" }}>
-                    <strong>Spending cap:</strong> {capVal}
+                    <strong>Cap:</strong> {capVal}
                     {lim.notes ? <span style={{ color: "#3b82f6" }}> — {lim.notes}</span> : null}
                   </span>
                 </div>
               );
             })()}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
-                style={{ flex: 1, minWidth: 140, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13 }} />
-              <input type="number" placeholder="Amount ($)" value={newAmt} onChange={(e) => setNewAmt(e.target.value)}
-                style={{ width: 110, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13 }} />
-              <button onClick={() => addLineItem()} style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 600 }}>
-                <Plus size={14} /> Add
-              </button>
-            </div>
 
             {/* Vendor suggestions */}
             {(newCat === "food" || newCat === "delivery") && (
@@ -1316,20 +1327,46 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
             <div style={{ textAlign: "center", padding: "28px 0", color: "#bbb", fontSize: 13 }}>No items yet. Add your first line item above.</div>
           ) : (
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 90px 36px", padding: "10px 14px", background: "#f8fafc", borderBottom: "1px solid #eee", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px 64px", padding: "10px 14px", background: "#f8fafc", borderBottom: "1px solid #eee", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase" }}>
                 <div>Category</div><div>Description</div><div style={{ textAlign: "right" }}>Amount</div><div />
               </div>
               {lineItems.map((li, i) => (
-                <div key={li.id} style={{ display: "grid", gridTemplateColumns: "120px 1fr 90px 36px", padding: "10px 14px", borderBottom: i < lineItems.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center" }}>
-                  <div><Badge label={BUDGET_CATEGORIES.find((c) => c.id === li.category)?.label || li.category} color="blue" /></div>
-                  <div style={{ fontSize: 13, color: "#333" }}>{li.description}</div>
-                  <div style={{ textAlign: "right", fontWeight: 600, fontSize: 14, color: PENN_BLUE }}>{fmt(li.amount)}</div>
-                  <button onClick={() => removeLineItem(li.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                editingId === li.id ? (
+                  <div key={li.id} style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px 64px", padding: "6px 10px", borderBottom: i < lineItems.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", gap: 4, background: "#f0f4ff" }}>
+                    <select value={editCat} onChange={e => setEditCat(e.target.value)}
+                      style={{ padding: "5px 6px", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 12, background: "#fff", width: "100%" }}>
+                      {BUDGET_CATEGORIES.filter(c => c.id !== "alcohol" || hasAlcohol).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                    <input value={editDesc} onChange={e => setEditDesc(e.target.value)}
+                      style={{ padding: "5px 8px", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box" }} />
+                    <input type="number" value={editAmt} onChange={e => setEditAmt(e.target.value)}
+                      style={{ padding: "5px 8px", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 13, textAlign: "right", width: "100%", boxSizing: "border-box" }} />
+                    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                      <button onClick={saveEdit} style={{ background: "#16a34a", border: "none", borderRadius: 5, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                        <Check size={13} color="#fff" />
+                      </button>
+                      <button onClick={() => setEditingId(null)} style={{ background: "#e5e7eb", border: "none", borderRadius: 5, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                        <X size={13} color="#555" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={li.id} style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px 64px", padding: "10px 14px", borderBottom: i < lineItems.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center" }}>
+                    <div><Badge label={BUDGET_CATEGORIES.find((c) => c.id === li.category)?.label || li.category} color="blue" /></div>
+                    <div style={{ fontSize: 13, color: "#333" }}>{li.description}</div>
+                    <div style={{ textAlign: "right", fontWeight: 600, fontSize: 14, color: PENN_BLUE }}>{fmt(li.amount)}</div>
+                    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                      <button onClick={() => startEdit(li)} style={{ background: "none", border: "none", cursor: "pointer", color: "#93c5fd", display: "flex", alignItems: "center" }}>
+                        <Pencil size={13} />
+                      </button>
+                      <button onClick={() => removeLineItem(li.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", display: "flex", alignItems: "center" }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )
               ))}
-              <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 90px 36px", padding: "10px 14px", background: "#f8fafc", borderTop: "2px solid #e5e7eb" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px 64px", padding: "10px 14px", background: "#f8fafc", borderTop: "2px solid #e5e7eb" }}>
                 <div /><div style={{ fontSize: 13, fontWeight: 700 }}>Total</div>
                 <div style={{ textAlign: "right", fontWeight: 800, fontSize: 16, color: totalBudget > (maxBudget || Infinity) ? PENN_RED : PENN_BLUE }}>{fmt(totalBudget)}</div>
                 <div />
