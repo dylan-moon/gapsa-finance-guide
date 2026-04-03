@@ -834,15 +834,17 @@ function FundingWizard() {
 const PLANNER_STEPS = ["Event Details", "Attendance", "Budget Builder", "Your Summary"];
 
 const BUDGET_CATEGORIES = [
-  { id: "food",       label: "Food",              limitKey: "foodAlcohol"      },
-  { id: "alcohol",    label: "Alcohol",            limitKey: "foodAlcohol"      },
-  { id: "delivery",   label: "Delivery / Service", limitKey: "delivery"         },
-  { id: "venue",      label: "Venue / Facility",   limitKey: "facilitySecurity" },
-  { id: "speaker",    label: "Speaker Honoraria",  limitKey: "speakerHonoraria" },
-  { id: "supplies",   label: "Supplies",           limitKey: "eventSupplies"    },
-  { id: "printing",   label: "Printing",           limitKey: "printing"         },
-  { id: "av",         label: "A/V & Tech",         limitKey: null               },
-  { id: "other",      label: "Other",              limitKey: null               },
+  { id: "food",        label: "Food & Catering",     limitKey: "foodAlcohol"      },
+  { id: "alcohol",     label: "Alcoholic Beverages",  limitKey: "foodAlcohol"      },
+  { id: "delivery",    label: "Delivery Services",    limitKey: "delivery"         },
+  { id: "venue",       label: "Venue / Facility",     limitKey: "facilitySecurity" },
+  { id: "speaker",     label: "Speaker Honoraria",    limitKey: "speakerHonoraria" },
+  { id: "equipment",   label: "Equipment / Supplies", limitKey: "eventSupplies"    },
+  { id: "printing",    label: "Printing",             limitKey: "printing"         },
+  { id: "merchandise", label: "Merchandise / Swag",   limitKey: "swag"             },
+  { id: "digital_ads", label: "Digital Advertising",  limitKey: "digitalAds"       },
+  { id: "gifts",       label: "Gifts & Prizes",       limitKey: "giftsPrizes"      },
+  { id: "other",       label: "Other",                limitKey: null               },
 ];
 
 function VendorSuggestions({ category, attendees, onSelectVendor }) {
@@ -904,6 +906,7 @@ function EventPlanner() {
   const [newDesc, setNewDesc] = useState("");
   const [newAmt, setNewAmt] = useState("");
   const [expandedVendors, setExpandedVendors] = useState(null);
+  const [gapsaAmount, setGapsaAmount] = useState("");
 
   const selectedType = CONFIG.eventTypes.find((e) => e.id === eventType);
   const deadlines = eventDate ? computeEventDeadlines(eventDate) : null;
@@ -914,6 +917,9 @@ function EventPlanner() {
   const maxFoodAlcohol = CONFIG.spendingLimits.foodAlcohol.max * attendees;
   const pctUsed = maxBudget ? Math.min((totalBudget / maxBudget) * 100, 100) : 0;
   const pctFoodAlcohol = Math.min((foodAlcoholTotal / maxFoodAlcohol) * 100, 100);
+  // Food+alcohol sub-cap ($70/person) only constrains spending when the event cap is higher (galas at $85)
+  const showFoodAlcoholCap = hasAlcohol && !!selectedType && selectedType.perPersonCap > CONFIG.spendingLimits.foodAlcohol.max;
+  const gapsaAmountNum = Number(gapsaAmount) || 0;
 
   const addLineItem = (desc, amt, cat) => {
     const category = cat || newCat;
@@ -1045,9 +1051,9 @@ function EventPlanner() {
             <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
                 { label: "Total Event Cap", val: selectedType.perPersonCap * attendees, sub: `${attendees} × ${fmt(selectedType.perPersonCap)}/person` },
-                { label: "Food & Alcohol Cap", val: CONFIG.spendingLimits.foodAlcohol.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person` },
+                showFoodAlcoholCap && { label: "Food & Alcohol Sub-Cap", val: CONFIG.spendingLimits.foodAlcohol.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person (within event cap)` },
                 { label: "Delivery Cap", val: CONFIG.spendingLimits.delivery.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.delivery.max)}/person` },
-              ].map((row, i) => (
+              ].filter(Boolean).map((row, i) => (
                 <div key={i} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px 14px" }}>
                   <div style={{ fontSize: 12, color: "#888" }}>{row.label}</div>
                   <div style={{ fontWeight: 700, fontSize: 20, color: PENN_BLUE }}>{fmt(row.val)}</div>
@@ -1070,7 +1076,7 @@ function EventPlanner() {
       {step === 2 && (
         <div>
           {/* Running totals */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: showFoodAlcoholCap ? "1fr 1fr" : "1fr", gap: 10, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: `2px solid ${totalBudget > (maxBudget || Infinity) ? PENN_RED : "#e5e7eb"}`, borderRadius: 10, padding: "12px 16px" }}>
               <div style={{ fontSize: 12, color: "#888" }}>Total Budget vs Cap</div>
               <div style={{ fontWeight: 700, fontSize: 20, color: totalBudget > (maxBudget || Infinity) ? PENN_RED : PENN_BLUE }}>{fmt(totalBudget)}</div>
@@ -1079,14 +1085,16 @@ function EventPlanner() {
                 <div style={{ background: pctUsed >= 100 ? PENN_RED : pctUsed > 80 ? "#f59e0b" : "#16a34a", width: `${pctUsed}%`, height: "100%", borderRadius: 4, transition: "width 0.3s" }} />
               </div>
             </div>
-            <div style={{ background: "#fff", border: `2px solid ${foodAlcoholTotal > maxFoodAlcohol ? PENN_RED : "#e5e7eb"}`, borderRadius: 10, padding: "12px 16px" }}>
-              <div style={{ fontSize: 12, color: "#888" }}>Food & Alcohol vs Cap</div>
-              <div style={{ fontWeight: 700, fontSize: 20, color: foodAlcoholTotal > maxFoodAlcohol ? PENN_RED : PENN_BLUE }}>{fmt(foodAlcoholTotal)}</div>
-              <div style={{ fontSize: 11, color: "#aaa" }}>of {fmt(maxFoodAlcohol)} max</div>
-              <div style={{ background: "#f0f0f0", borderRadius: 4, height: 4, marginTop: 6 }}>
-                <div style={{ background: pctFoodAlcohol >= 100 ? PENN_RED : pctFoodAlcohol > 80 ? "#f59e0b" : "#16a34a", width: `${pctFoodAlcohol}%`, height: "100%", borderRadius: 4, transition: "width 0.3s" }} />
+            {showFoodAlcoholCap && (
+              <div style={{ background: "#fff", border: `2px solid ${foodAlcoholTotal > maxFoodAlcohol ? PENN_RED : "#e5e7eb"}`, borderRadius: 10, padding: "12px 16px" }}>
+                <div style={{ fontSize: 12, color: "#888" }}>Food & Alcohol Sub-Cap</div>
+                <div style={{ fontWeight: 700, fontSize: 20, color: foodAlcoholTotal > maxFoodAlcohol ? PENN_RED : PENN_BLUE }}>{fmt(foodAlcoholTotal)}</div>
+                <div style={{ fontSize: 11, color: "#aaa" }}>of {fmt(maxFoodAlcohol)} max</div>
+                <div style={{ background: "#f0f0f0", borderRadius: 4, height: 4, marginTop: 6 }}>
+                  <div style={{ background: pctFoodAlcohol >= 100 ? PENN_RED : pctFoodAlcohol > 80 ? "#f59e0b" : "#16a34a", width: `${pctFoodAlcohol}%`, height: "100%", borderRadius: 4, transition: "width 0.3s" }} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Add line item */}
@@ -1237,6 +1245,34 @@ function EventPlanner() {
             </div>
           )}
 
+          {/* GAPSA funding requested */}
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 14 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 4px" }}>GAPSA Funding Requested</h4>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 12px" }}>How much of your budget are you requesting from GAPSA? This determines your compliance requirements.</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16, color: "#555" }}>$</span>
+              <input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={gapsaAmount}
+                onChange={(e) => setGapsaAmount(e.target.value)}
+                style={{ width: 140, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 15 }}
+              />
+              {totalBudget > 0 && gapsaAmountNum > 0 && (
+                <span style={{ fontSize: 13, color: "#888" }}>= {Math.round((gapsaAmountNum / totalBudget) * 100)}% of total budget</span>
+              )}
+            </div>
+            {gapsaAmountNum > 0 && totalBudget > 0 && gapsaAmountNum / totalBudget > CONFIG.compliance.eventbriteThreshold && (
+              <div style={{ marginTop: 10 }}>
+                <Alert type="warning">
+                  GAPSA is funding more than {Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your event. You must use the <strong>Graduate Events Eventbrite</strong> account for all ticketing.{" "}
+                  <a href={CONFIG.compliance.eventbriteRequestUrl} target="_blank" rel="noreferrer" style={{ color: "#92400e" }}>Request access →</a>
+                </Alert>
+              </div>
+            )}
+          </div>
+
           {/* Compliance reminders */}
           <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 16 }}>
             <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 10px" }}>Compliance Reminders</h4>
@@ -1244,7 +1280,7 @@ function EventPlanner() {
               "Display the GAPSA logo on all promotional materials.",
               hasAlcohol && "Food must be served alongside any alcohol.",
               hasAlcohol && "Maximum 2 alcoholic drinks per person.",
-              totalBudget > CONFIG.compliance.auditThreshold && `Events funded over ${fmt(CONFIG.compliance.auditThreshold)} must reserve 2 tickets for GAPSA representatives.`,
+              gapsaAmountNum > CONFIG.compliance.auditThreshold && `Receiving over ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA — reserve 2 tickets for GAPSA representatives. Event is subject to in-person audit.`,
               "Submit your After-Action Review (AAR) within the semester deadline.",
               "Do NOT use personal funds or expect reimbursement without advance approval.",
             ].filter(Boolean).map((note, i) => (
@@ -1264,7 +1300,7 @@ function EventPlanner() {
           : <div />}
         {step < 3
           ? <button onClick={() => setStep(step + 1)} disabled={!canAdvanceStep()} style={{ display: "flex", alignItems: "center", gap: 4, background: canAdvanceStep() ? PENN_BLUE : "#ccc", color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: canAdvanceStep() ? "pointer" : "default", fontSize: 13, fontWeight: 600, border: "none" }}>Next <ChevronRight size={15} /></button>
-          : <button onClick={() => { setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>}
+          : <button onClick={() => { setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>}
       </div>
     </div>
   );
