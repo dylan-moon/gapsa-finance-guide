@@ -1184,14 +1184,17 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
             <Users size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />
             Expected Attendees: <span style={{ color: PENN_RED, fontSize: 22, fontWeight: 700 }}>{attendees}</span>
           </label>
-          <input type="range" min={5} max={500} step={5} value={attendees} onChange={(e) => setAttendees(Number(e.target.value))}
+          <input type="range" min={5} max={150} step={5} value={Math.min(attendees, 150)} onChange={(e) => setAttendees(Number(e.target.value))}
             style={{ width: "100%", accentColor: PENN_BLUE, margin: "12px 0" }}
           />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#999", marginBottom: 20 }}><span>5</span><span>500</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#999", marginBottom: 20 }}><span>5</span><span>150+</span></div>
 
-          <input type="number" min={1} value={attendees} onChange={(e) => setAttendees(Number(e.target.value))}
-            style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 15, width: 120, textAlign: "center" }}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="number" min={1} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value)))}
+              style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 15, width: 120, textAlign: "center" }}
+            />
+            {attendees > 150 && <span style={{ fontSize: 12, color: "#888" }}>Large event — slider capped at 150</span>}
+          </div>
 
           {selectedType && (
             <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
