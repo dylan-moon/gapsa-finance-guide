@@ -1161,9 +1161,10 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
       {step === 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "block", marginBottom: 8 }}>
-              <Calendar size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />
+            <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Calendar size={14} />
               Event Date
+              <span style={{ color: PENN_RED, fontSize: 11, fontWeight: 700 }}>required</span>
             </label>
             <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)}
               min={new Date().toISOString().split("T")[0]}
