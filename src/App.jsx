@@ -1491,12 +1491,34 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
           {lineItems.length > 0 && (
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 14 }}>
               <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 12px" }}>Budget Breakdown</h4>
-              {lineItems.map((li, i) => (
-                <div key={li.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: i < lineItems.length - 1 ? "1px solid #f5f5f5" : "none" }}>
-                  <span style={{ fontSize: 13, color: "#555" }}>{li.description}</span>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: PENN_BLUE }}>{fmt(li.amount)}</span>
-                </div>
-              ))}
+              {(() => {
+                const categoryActions = {
+                  speaker: { text: "Speaker ISP onboarding required", url: "mailto:gradcenter@upenn.edu" },
+                  alcohol:  { text: "Register with University Life", url: CONFIG.compliance.alcoholRegistrationUrl },
+                  gifts:    { text: "W-9 required for physical prizes", url: null },
+                };
+                return lineItems.map((li, i) => {
+                  const catLabel = BUDGET_CATEGORIES.find(c => c.id === li.category)?.label || li.category;
+                  const action = categoryActions[li.category];
+                  return (
+                    <div key={li.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: i < lineItems.length - 1 ? "1px solid #f5f5f5" : "none" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#888", marginBottom: 1 }}>{catLabel}</div>
+                        <div style={{ fontSize: 13, color: "#333" }}>{li.description}</div>
+                        {action && (
+                          <div style={{ fontSize: 11, marginTop: 2 }}>
+                            {action.url
+                              ? <a href={action.url} target={action.url.startsWith("mailto") ? undefined : "_blank"} rel="noreferrer" style={{ color: PENN_BLUE, textDecoration: "none", borderBottom: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", gap: 3 }}>{action.text} <ExternalLink size={9} /></a>
+                              : <span style={{ color: "#d97706" }}>{action.text}</span>
+                            }
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontWeight: 600, fontSize: 13, color: PENN_BLUE, whiteSpace: "nowrap", marginLeft: 12 }}>{fmt(li.amount)}</span>
+                    </div>
+                  );
+                });
+              })()}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 6, borderTop: "2px solid #e5e7eb" }}>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>Total Estimated</span>
                 <span style={{ fontWeight: 800, fontSize: 16, color: totalBudget > (maxBudget || Infinity) ? PENN_RED : PENN_BLUE }}>{fmt(totalBudget)}</span>
@@ -1540,7 +1562,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               hasAlcohol && "Food must be served alongside any alcohol.",
               hasAlcohol && "Maximum 2 alcoholic drinks per person.",
               gapsaAmountNum > CONFIG.compliance.auditThreshold && `Receiving over ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA — reserve 2 tickets for GAPSA representatives. Event is subject to in-person audit.`,
-              "Submit your After-Action Review (AAR) within the semester deadline.",
+              <span>Submit your <a href={CONFIG.compliance.aarUrl} target="_blank" rel="noreferrer" style={{ color: PENN_BLUE }}>After-Action Review (AAR)</a> — due Dec 15 (fall) or May 15 (spring).</span>,
               "Do NOT use personal funds or expect reimbursement without advance approval.",
             ].filter(Boolean).map((note, i) => (
               <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
