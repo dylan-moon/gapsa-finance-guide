@@ -905,7 +905,6 @@ function EventPlanner() {
   const [newCat, setNewCat] = useState("food");
   const [newDesc, setNewDesc] = useState("");
   const [newAmt, setNewAmt] = useState("");
-  const [expandedVendors, setExpandedVendors] = useState(null);
   const [gapsaAmount, setGapsaAmount] = useState("");
 
   const selectedType = CONFIG.eventTypes.find((e) => e.id === eventType);
@@ -913,11 +912,17 @@ function EventPlanner() {
 
   const totalBudget = lineItems.reduce((sum, li) => sum + (Number(li.amount) || 0), 0);
   const foodAlcoholTotal = lineItems.filter((li) => li.category === "food" || li.category === "alcohol").reduce((sum, li) => sum + (Number(li.amount) || 0), 0);
-  const maxBudget = selectedType ? selectedType.perPersonCap * attendees : null;
+  // When alcohol is served at a standard event, the $70/person food+alcohol cap becomes the effective total cap.
+  // For galas ($85 cap), the $70 food+alcohol cap is a sub-cap tracked separately.
+  const alcoholExpandsCap = hasAlcohol && !!selectedType && selectedType.alcoholAllowed && selectedType.perPersonCap < CONFIG.spendingLimits.foodAlcohol.max;
+  const effectivePerPersonCap = selectedType
+    ? (alcoholExpandsCap ? CONFIG.spendingLimits.foodAlcohol.max : selectedType.perPersonCap)
+    : 0;
+  const maxBudget = selectedType ? effectivePerPersonCap * attendees : null;
   const maxFoodAlcohol = CONFIG.spendingLimits.foodAlcohol.max * attendees;
   const pctUsed = maxBudget ? Math.min((totalBudget / maxBudget) * 100, 100) : 0;
   const pctFoodAlcohol = Math.min((foodAlcoholTotal / maxFoodAlcohol) * 100, 100);
-  // Food+alcohol sub-cap ($70/person) only constrains spending when the event cap is higher (galas at $85)
+  // Food+alcohol sub-cap only shown for galas, where $70 < $85 event cap
   const showFoodAlcoholCap = hasAlcohol && !!selectedType && selectedType.perPersonCap > CONFIG.spendingLimits.foodAlcohol.max;
   const gapsaAmountNum = Number(gapsaAmount) || 0;
 
@@ -927,7 +932,7 @@ function EventPlanner() {
     const amount = amt || Number(newAmt);
     if (!description || !amount) return;
     setLineItems([...lineItems, { id: Date.now(), category, description, amount }]);
-    setNewDesc(""); setNewAmt(""); setExpandedVendors(null);
+    setNewDesc(""); setNewAmt("");
   };
 
   const removeLineItem = (id) => setLineItems(lineItems.filter((li) => li.id !== id));
@@ -936,6 +941,101 @@ function EventPlanner() {
     if (step === 0) return !!eventDate && !!eventType;
     if (step === 1) return attendees >= 1;
     return true;
+  };
+
+  const downloadSummaryPDF = () => {
+    const dl = deadlines;
+    const capLabel = alcoholExpandsCap ? "Food & Alcohol Cap" : "Total Event Cap";
+    const deadlineRows = [
+      { label: "GAPSA Application Deadline", date: dl?.applicationDeadline, note: dl?.gapsaSubmission ? `Next cycle: submit by ${fmtDate(dl.gapsaSubmission.date)}` : "" },
+      { label: "Submit Newsletter Event Listing", date: dl?.newsletterDeadline, note: "2 weeks before event" },
+      hasAlcohol && { label: "University Life Alcohol Registration", date: dl?.alcoholDeadline, note: "10 business days before event" },
+      { label: "Payment Requests Due", date: dl?.paymentDeadline, note: "" },
+      { label: "New Vendor Payment Requests Due", date: dl?.newVendorDeadline, note: "3–4 weeks for new vendors" },
+    ].filter(Boolean);
+
+    const complianceItems = [
+      "Display the GAPSA logo on all promotional materials.",
+      hasAlcohol && "Food must be served alongside any alcohol. Maximum 2 alcoholic drinks per person.",
+      gapsaAmountNum > CONFIG.compliance.auditThreshold && `Receiving over ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA — reserve 2 tickets for GAPSA reps. Event subject to in-person audit.`,
+      gapsaAmountNum > 0 && totalBudget > 0 && gapsaAmountNum / totalBudget > CONFIG.compliance.eventbriteThreshold && `GAPSA funding exceeds ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of total budget — must use Graduate Events Eventbrite for all ticketing.`,
+      "Submit your After-Action Review (AAR) by Dec 15 (fall) or May 15 (spring).",
+    ].filter(Boolean);
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>GAPSA Event Summary</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; padding: 40px; max-width: 680px; margin: 0 auto; font-size: 13px; }
+  h1 { color: #011F5B; font-size: 22px; margin: 0 0 4px; }
+  .subtitle { color: #888; font-size: 12px; margin: 0 0 24px; }
+  h2 { color: #011F5B; font-size: 15px; margin: 24px 0 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+  .overview { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: #011F5B; color: #fff; border-radius: 8px; padding: 16px; margin-bottom: 8px; }
+  .overview-item .label { font-size: 10px; opacity: 0.6; text-transform: uppercase; }
+  .overview-item .value { font-weight: 700; font-size: 15px; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 8px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+  th { font-weight: 600; color: #888; font-size: 10px; text-transform: uppercase; background: #f8fafc; }
+  td.right { text-align: right; font-weight: 600; color: #011F5B; }
+  td.note { color: #aaa; font-size: 11px; }
+  td.urgent { color: #990000; font-weight: 600; }
+  .total-row td { font-weight: 700; border-top: 2px solid #e5e7eb; font-size: 13px; }
+  .compliance li { margin-bottom: 6px; line-height: 1.5; }
+  .cap-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; display: inline-block; margin-right: 10px; }
+  .cap-box .cap-label { font-size: 11px; color: #888; }
+  .cap-box .cap-value { font-weight: 700; font-size: 18px; color: #011F5B; }
+  .gapsa-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+  @media print { body { padding: 20px; } }
+</style>
+</head><body>
+<h1>GAPSA Event Summary</h1>
+<div class="subtitle">Generated ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · University of Pennsylvania</div>
+
+<div class="overview">
+  <div class="overview-item"><div class="label">Event Date</div><div class="value">${eventDate ? fmtDate(eventDate, { month: "long", day: "numeric", year: "numeric" }) : "—"}</div></div>
+  <div class="overview-item"><div class="label">Event Type</div><div class="value">${selectedType?.label || "—"}</div></div>
+  <div class="overview-item"><div class="label">Attendees</div><div class="value">${attendees}</div></div>
+  <div class="overview-item"><div class="label">Alcohol</div><div class="value">${hasAlcohol ? "Yes" : "No"}</div></div>
+  <div class="overview-item"><div class="label">Est. Total Budget</div><div class="value">${fmt(totalBudget)}</div></div>
+  <div class="overview-item"><div class="label">GAPSA Requested</div><div class="value">${gapsaAmountNum > 0 ? fmt(gapsaAmountNum) : "—"}</div></div>
+</div>
+
+<div style="margin: 10px 0 20px;">
+  <div class="cap-box"><div class="cap-label">${capLabel}</div><div class="cap-value">${fmt(maxBudget)}</div><div class="cap-label">${attendees} × ${fmt(effectivePerPersonCap)}/person</div></div>
+  <div class="cap-box"><div class="cap-label">Delivery Cap</div><div class="cap-value">${fmt(CONFIG.spendingLimits.delivery.max * attendees)}</div><div class="cap-label">${attendees} × ${fmt(CONFIG.spendingLimits.delivery.max)}/person</div></div>
+  ${showFoodAlcoholCap ? `<div class="cap-box"><div class="cap-label">Food & Alcohol Sub-Cap</div><div class="cap-value">${fmt(maxFoodAlcohol)}</div><div class="cap-label">${attendees} × ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person</div></div>` : ""}
+</div>
+
+${dl ? `<h2>Key Deadlines</h2>
+<table>
+  <thead><tr><th>Deadline</th><th>Date</th><th>Note</th></tr></thead>
+  <tbody>
+    ${deadlineRows.map(r => `<tr><td${dl && r.date < new Date() ? ' class="urgent"' : ""}>${r.label}</td><td class="right">${fmtDate(r.date)}</td><td class="note">${r.note}</td></tr>`).join("")}
+  </tbody>
+</table>` : ""}
+
+${lineItems.length > 0 ? `<h2>Budget Breakdown</h2>
+<table>
+  <thead><tr><th>Category</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
+  <tbody>
+    ${lineItems.map(li => `<tr><td>${BUDGET_CATEGORIES.find(c => c.id === li.category)?.label || li.category}</td><td>${li.description}</td><td class="right">${fmt(li.amount)}</td></tr>`).join("")}
+    <tr class="total-row"><td colspan="2">Total Estimated</td><td class="right">${fmt(totalBudget)}</td></tr>
+  </tbody>
+</table>` : ""}
+
+${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>GAPSA Funding Requested: ${fmt(gapsaAmountNum)}</strong>${totalBudget > 0 ? ` (${Math.round((gapsaAmountNum / totalBudget) * 100)}% of total budget)` : ""}</div>` : ""}
+
+<h2>Compliance Reminders</h2>
+<ul class="compliance">
+  ${complianceItems.map(item => `<li>${item}</li>`).join("")}
+</ul>
+
+<p style="margin-top:32px;font-size:11px;color:#aaa">GAPSA Finance Guide · gapsa.upenn.edu · Questions: gapsa.funds@gapsa.upenn.edu</p>
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
   };
 
   // Urgency level for deadline
@@ -1050,7 +1150,7 @@ function EventPlanner() {
           {selectedType && (
             <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                { label: "Total Event Cap", val: selectedType.perPersonCap * attendees, sub: `${attendees} × ${fmt(selectedType.perPersonCap)}/person` },
+                { label: alcoholExpandsCap ? "Food & Alcohol Cap" : "Total Event Cap", val: effectivePerPersonCap * attendees, sub: `${attendees} × ${fmt(effectivePerPersonCap)}/person${alcoholExpandsCap ? " — food+alcohol cap applies" : ""}` },
                 showFoodAlcoholCap && { label: "Food & Alcohol Sub-Cap", val: CONFIG.spendingLimits.foodAlcohol.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person (within event cap)` },
                 { label: "Delivery Cap", val: CONFIG.spendingLimits.delivery.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.delivery.max)}/person` },
               ].filter(Boolean).map((row, i) => (
@@ -1101,7 +1201,7 @@ function EventPlanner() {
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 10 }}>Add Line Item</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <select value={newCat} onChange={(e) => { setNewCat(e.target.value); setExpandedVendors(e.target.value); }}
+              <select value={newCat} onChange={(e) => setNewCat(e.target.value)}
                 style={{ padding: "8px 10px", border: "1px solid #ddd", borderRadius: 7, fontSize: 13, background: "#fff" }}>
                 {BUDGET_CATEGORIES
                   .filter((c) => c.id !== "alcohol" || hasAlcohol)
@@ -1117,9 +1217,9 @@ function EventPlanner() {
             </div>
 
             {/* Vendor suggestions */}
-            {(expandedVendors === "food" || expandedVendors === "delivery") && (
+            {(newCat === "food" || newCat === "delivery") && (
               <VendorSuggestions
-                category={expandedVendors}
+                category={newCat}
                 attendees={attendees}
                 onSelectVendor={(vendor, estimate) => {
                   setNewDesc(vendor.name);
@@ -1300,7 +1400,12 @@ function EventPlanner() {
           : <div />}
         {step < 3
           ? <button onClick={() => setStep(step + 1)} disabled={!canAdvanceStep()} style={{ display: "flex", alignItems: "center", gap: 4, background: canAdvanceStep() ? PENN_BLUE : "#ccc", color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: canAdvanceStep() ? "pointer" : "default", fontSize: 13, fontWeight: 600, border: "none" }}>Next <ChevronRight size={15} /></button>
-          : <button onClick={() => { setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>}
+          : <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={downloadSummaryPDF} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", color: PENN_BLUE, padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1.5px solid ${PENN_BLUE}` }}>
+                <ClipboardList size={14} /> Save as PDF
+              </button>
+              <button onClick={() => { setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>
+            </div>}
       </div>
     </div>
   );
