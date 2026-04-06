@@ -568,6 +568,8 @@ function NavBar({ mode, setMode }) {
     { id: "deadlines", label: "Deadlines",       icon: <Clock size={15} /> },
     { id: "funds",     label: "All Funds",       icon: <BookOpen size={15} /> },
     { id: "forms",     label: "Forms & Links",   icon: <ClipboardList size={15} /> },
+    { id: "guide",     label: "How It Works",    icon: <Info size={15} /> },
+    { id: "quiz",      label: "Policy Quiz",     icon: <Star size={15} /> },
   ];
   return (
     <nav style={{ background: PENN_BLUE, borderBottom: `3px solid ${PENN_RED}` }}>
@@ -1812,6 +1814,445 @@ function FormsLinks() {
 }
 
 // ============================================================
+// PROCESS GUIDE — "How It Works"
+// ============================================================
+
+const PROCESS_PHASES = [
+  {
+    id: 1,
+    label: "Ideation",
+    time: "8–12 weeks out",
+    color: "#6366f1",
+    items: [
+      "Define your event concept, goals, and target audience.",
+      "Estimate attendance and build a rough budget.",
+      "Decide which funding sources you'll apply to (SGEF, IPF, AEF, etc.).",
+      "Check that your org is registered with Student Orgs & Leadership.",
+    ],
+    links: [
+      { label: "All Funding Sources", tab: "funds" },
+      { label: "Spending Limits Reference", tab: "limits" },
+    ],
+  },
+  {
+    id: 2,
+    label: "Apply",
+    time: "4–8 weeks out",
+    color: "#0ea5e9",
+    items: [
+      `Submit the Universal Funding Application (UFA) — minimum ${CONFIG.deadlines.minLeadDays} days before your event.`,
+      "Attach a detailed budget using GAPSA's approved line-item categories.",
+      "Large requests (> $10,000) go to General Assembly — budget 8–12 weeks.",
+      "Watch your email for follow-up questions from the Finance Committee.",
+    ],
+    links: [
+      { label: "Universal Funding Application", url: CONFIG.forms.ufaUrl },
+      { label: "Submission Deadlines", tab: "deadlines" },
+    ],
+  },
+  {
+    id: 3,
+    label: "Prepare",
+    time: "2–4 weeks out",
+    color: "#10b981",
+    items: [
+      "Confirm vendor selection and place catering orders.",
+      "If serving alcohol: register with University Life at least 10 business days before the event.",
+      `If GAPSA is funding > ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your budget, set up ticketing via Graduate Events Eventbrite.`,
+      "New vendors (first time with Penn) need onboarding — allow 3 extra weeks.",
+      "Confirm speaker/performer contracts and ISP onboarding if needed.",
+    ],
+    links: [
+      { label: "Alcohol Event Registration (ULife)", url: CONFIG.compliance.alcoholRegistrationUrl },
+      { label: "Event Planner Tool", tab: "planner" },
+    ],
+  },
+  {
+    id: 4,
+    label: "Promote",
+    time: "1–2 weeks out",
+    color: "#f59e0b",
+    items: [
+      "Send event info to GAPSA for newsletter inclusion (deadline: 14 days before).",
+      "Display GAPSA logo on all promotional materials per funding agreement.",
+      "Confirm final headcount for catering orders.",
+      "Share event details with GAPSA reps if your event is subject to audit.",
+    ],
+    links: [
+      { label: "GAPSA Newsletter Submission", url: CONFIG.forms.newsletterUrl },
+    ],
+  },
+  {
+    id: 5,
+    label: "Event Day",
+    time: "Day of event",
+    color: PENN_RED,
+    items: [
+      "Track actual attendance — you'll need this for your AAR.",
+      `If funded > ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA, reserve 2 tickets for GAPSA reps.`,
+      "Collect all receipts — reimbursements require original itemized receipts.",
+      "Ensure alcohol service follows University policy (food must be served, max 2 drinks/person).",
+    ],
+    links: [],
+  },
+  {
+    id: 6,
+    label: "After",
+    time: `Within ${CONFIG.deadlines.reimbursementWindowDays} days`,
+    color: "#8b5cf6",
+    items: [
+      `Submit reimbursement requests within ${CONFIG.deadlines.reimbursementWindowDays} calendar days of each purchase.`,
+      "File your After-Action Report (AAR) — Fall deadline: Dec 15, Spring: May 15.",
+      "Provide actual attendance and spending figures in your AAR.",
+      "Late or incomplete AARs may affect future funding eligibility.",
+    ],
+    links: [
+      { label: "After-Action Report Form", url: CONFIG.compliance.aarUrl },
+    ],
+  },
+];
+
+function ProcessGuide({ setMode }) {
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: PENN_BLUE, marginBottom: 6 }}>How the GAPSA Funding Process Works</h2>
+        <p style={{ color: "#555", fontSize: 14, lineHeight: 1.6 }}>
+          From idea to after-action report — here's the full funding lifecycle so you know what to expect at each stage.
+        </p>
+      </div>
+
+      {/* Vertical timeline */}
+      <div style={{ position: "relative", paddingLeft: 52 }}>
+        {/* Continuous vertical line */}
+        <div style={{
+          position: "absolute", left: 20, top: 24, bottom: 24,
+          width: 2, background: "#e5e7eb",
+        }} />
+
+        {PROCESS_PHASES.map((phase, idx) => (
+          <div key={phase.id} style={{ position: "relative", marginBottom: idx < PROCESS_PHASES.length - 1 ? 28 : 0 }}>
+            {/* Circle node */}
+            <div style={{
+              position: "absolute", left: -52, top: 16,
+              width: 42, height: 42, borderRadius: "50%",
+              background: phase.color, color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 800, fontSize: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              zIndex: 1,
+            }}>
+              {phase.id}
+            </div>
+
+            {/* Phase card */}
+            <div style={{
+              background: "#fff", border: `1px solid #e5e7eb`,
+              borderLeft: `4px solid ${phase.color}`,
+              borderRadius: 10, padding: "16px 20px",
+            }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 16, color: PENN_BLUE }}>{phase.label}</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, color: phase.color,
+                  background: `${phase.color}18`, padding: "2px 8px", borderRadius: 20,
+                }}>
+                  {phase.time}
+                </span>
+              </div>
+
+              <ul style={{ paddingLeft: 18, margin: "0 0 12px", listStyle: "disc" }}>
+                {phase.items.map((item, i) => (
+                  <li key={i} style={{ fontSize: 13, color: "#444", lineHeight: 1.65, marginBottom: 3 }}>{item}</li>
+                ))}
+              </ul>
+
+              {phase.links.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {phase.links.map((link, i) => (
+                    link.tab ? (
+                      <button key={i} onClick={() => setMode(link.tab)}
+                        style={{ fontSize: 12, fontWeight: 600, color: phase.color, background: `${phase.color}12`,
+                          border: `1px solid ${phase.color}40`, borderRadius: 6,
+                          padding: "4px 10px", cursor: "pointer" }}>
+                        {link.label} →
+                      </button>
+                    ) : (
+                      <a key={i} href={link.url} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, fontWeight: 600, color: phase.color, background: `${phase.color}12`,
+                          border: `1px solid ${phase.color}40`, borderRadius: 6,
+                          padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        {link.label} <ExternalLink size={10} />
+                      </a>
+                    )
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA footer */}
+      <div style={{ marginTop: 32, background: PENN_BLUE, borderRadius: 10, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Ready to plan your event?</div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Use the Event Planner to build your budget and get personalized deadlines.</div>
+        </div>
+        <button onClick={() => setMode("planner")}
+          style={{ background: PENN_RED, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          Open Event Planner →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// POLICY QUIZ
+// ============================================================
+
+const QUIZ_QUESTIONS = [
+  {
+    question: "What is the minimum number of days before your event that you must submit a GAPSA funding application?",
+    options: ["14 days", "21 days", "28 days", "45 days"],
+    correct: 2,
+    explanation: `GAPSA requires applications at least ${CONFIG.deadlines.minLeadDays} days (4 weeks) before the event. Submitting 60+ days out is strongly recommended to allow time for questions and revisions.`,
+  },
+  {
+    question: "What is the maximum combined per-person spending on food AND alcohol at an event?",
+    options: ["$25/person", "$50/person", "$70/person", "$85/person"],
+    correct: 2,
+    explanation: `The combined food & alcohol cap is ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person. This applies regardless of event type whenever alcohol is served. Food must be provided whenever alcohol is present.`,
+  },
+  {
+    question: "What is the allowed per-person spending range for a General Body Meeting (GBM)?",
+    options: ["Up to $5/person", "$10–$15/person", "$15–$25/person", "$25–$40/person"],
+    correct: 1,
+    explanation: `GBMs are limited to ${fmt(CONFIG.spendingLimits.generalMeeting.min)}–${fmt(CONFIG.spendingLimits.generalMeeting.max)}/person for minimal snacks. No alcohol is permitted, and GBMs cannot be held at restaurants.`,
+  },
+  {
+    question: "If GAPSA funds more than what percentage of your total event budget, must you use the Graduate Events Eventbrite account for all ticketing?",
+    options: ["25%", "40%", "50%", "75%"],
+    correct: 1,
+    explanation: `When GAPSA contributes more than ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your total event budget, all ticketing must go through the Graduate Events Eventbrite account — not your org's own account.`,
+  },
+  {
+    question: "At what GAPSA funding amount does your event become subject to an in-person audit (and require 2 tickets reserved for GAPSA reps)?",
+    options: ["Over $1,000", "Over $1,500", "Over $2,500", "Over $5,000"],
+    correct: 2,
+    explanation: `Events receiving more than ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA are subject to in-person audit. You must reserve 2 tickets for GAPSA representatives and may be visited by finance staff.`,
+  },
+  {
+    question: "How many business days before an event with alcohol must you register with University Life?",
+    options: ["3 business days", "5 business days", "7 business days", "10 business days"],
+    correct: 3,
+    explanation: `University Life requires alcohol event registration at least ${CONFIG.deadlines.alcoholRegistrationDays} business days before your event. Missing this deadline means you cannot legally serve alcohol at your event.`,
+  },
+  {
+    question: "What is the Fall After-Action Report (AAR) deadline?",
+    options: ["November 1", "December 1", "December 15", "January 15"],
+    correct: 2,
+    explanation: `The Fall AAR is due ${fmtDate(CONFIG.deadlines.aarFall, { month: "long", day: "numeric" })}. Missing this deadline can jeopardize your organization's eligibility for future GAPSA funding. The Spring deadline is May 15.`,
+  },
+  {
+    question: "How many calendar days after a purchase do you have to submit a reimbursement request?",
+    options: ["5 days", "10 days", "30 days", "60 days"],
+    correct: 1,
+    explanation: `Reimbursement requests must be submitted within ${CONFIG.deadlines.reimbursementWindowDays} calendar days of the purchase. Late submissions may be denied. Always keep itemized original receipts.`,
+  },
+];
+
+function PolicyQuiz() {
+  const [current, setCurrent]   = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore]       = useState(0);
+  const [done, setDone]         = useState(false);
+  const [answers, setAnswers]   = useState([]);
+
+  const q = QUIZ_QUESTIONS[current];
+  const total = QUIZ_QUESTIONS.length;
+
+  function handleSelect(idx) {
+    if (submitted) return;
+    setSelected(idx);
+  }
+
+  function handleSubmit() {
+    if (selected === null) return;
+    const correct = selected === q.correct;
+    setSubmitted(true);
+    if (correct) setScore((s) => s + 1);
+    setAnswers((prev) => [...prev, { selected, correct: q.correct, wasCorrect: correct }]);
+  }
+
+  function handleNext() {
+    if (current + 1 >= total) {
+      setDone(true);
+    } else {
+      setCurrent((c) => c + 1);
+      setSelected(null);
+      setSubmitted(false);
+    }
+  }
+
+  function handleRestart() {
+    setCurrent(0);
+    setSelected(null);
+    setSubmitted(false);
+    setScore(0);
+    setDone(false);
+    setAnswers([]);
+  }
+
+  if (done) {
+    const pct = Math.round((score / total) * 100);
+    const passed = score >= Math.ceil(total * 0.75);
+    return (
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "36px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>{passed ? "🎉" : "📚"}</div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: PENN_BLUE, marginBottom: 8 }}>
+            {passed ? "Great work!" : "Keep studying!"}
+          </h2>
+          <div style={{ fontSize: 40, fontWeight: 800, color: passed ? "#10b981" : PENN_RED, marginBottom: 4 }}>
+            {score}/{total}
+          </div>
+          <div style={{ color: "#666", fontSize: 15, marginBottom: 28 }}>
+            {pct}% correct · {passed ? "You know your GAPSA policy!" : "Review the incorrect answers below, then try again."}
+          </div>
+
+          {/* Per-question result summary */}
+          <div style={{ textAlign: "left", marginBottom: 28 }}>
+            {QUIZ_QUESTIONS.map((qq, i) => {
+              const ans = answers[i];
+              return (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  padding: "10px 0", borderBottom: i < total - 1 ? "1px solid #f0f0f0" : "none",
+                }}>
+                  <div style={{ flexShrink: 0, marginTop: 2 }}>
+                    {ans.wasCorrect
+                      ? <CheckCircle size={16} color="#10b981" />
+                      : <X size={16} color={PENN_RED} />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, color: "#333", marginBottom: 3 }}>{qq.question}</div>
+                    {!ans.wasCorrect && (
+                      <div style={{ fontSize: 12, color: "#666" }}>
+                        Your answer: <span style={{ color: PENN_RED, fontWeight: 600 }}>{qq.options[ans.selected]}</span>
+                        {" · "}Correct: <span style={{ color: "#10b981", fontWeight: 600 }}>{qq.options[ans.correct]}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button onClick={handleRestart}
+            style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "11px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Retake Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      {/* Progress bar */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: PENN_BLUE }}>Question {current + 1} of {total}</span>
+          <span style={{ fontSize: 12, color: "#888" }}>{score} correct so far</span>
+        </div>
+        <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${((current) / total) * 100}%`, background: PENN_BLUE, borderRadius: 3, transition: "width 0.3s" }} />
+        </div>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "28px 28px 24px" }}>
+        {/* Question */}
+        <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.5, marginBottom: 22 }}>
+          {q.question}
+        </p>
+
+        {/* Options */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+          {q.options.map((opt, idx) => {
+            let bg = "#f9fafb", border = "#e5e7eb", color = "#333";
+            if (submitted) {
+              if (idx === q.correct)   { bg = "#f0fdf4"; border = "#10b981"; color = "#065f46"; }
+              else if (idx === selected) { bg = "#fef2f2"; border = PENN_RED;  color = "#7f1d1d"; }
+            } else if (selected === idx) {
+              bg = "#eff6ff"; border = PENN_BLUE; color = PENN_BLUE;
+            }
+            return (
+              <button key={idx} onClick={() => handleSelect(idx)}
+                style={{
+                  width: "100%", textAlign: "left", padding: "12px 14px",
+                  background: bg, border: `2px solid ${border}`, borderRadius: 8,
+                  color, fontSize: 14, fontWeight: selected === idx || (submitted && idx === q.correct) ? 600 : 400,
+                  cursor: submitted ? "default" : "pointer", transition: "all 0.15s",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                <span style={{
+                  width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                  background: submitted && idx === q.correct ? "#10b981" : submitted && idx === selected ? PENN_RED : selected === idx ? PENN_BLUE : "#e5e7eb",
+                  color: (submitted || selected === idx) ? "#fff" : "#888",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                  {String.fromCharCode(65 + idx)}
+                </span>
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Explanation (after submit) */}
+        {submitted && (
+          <div style={{
+            background: selected === q.correct ? "#f0fdf4" : "#fef2f2",
+            border: `1px solid ${selected === q.correct ? "#86efac" : "#fca5a5"}`,
+            borderRadius: 8, padding: "12px 14px", marginBottom: 18,
+          }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, color: selected === q.correct ? "#065f46" : "#7f1d1d" }}>
+              {selected === q.correct ? "✓ Correct!" : "✗ Incorrect"}
+            </div>
+            <p style={{ fontSize: 13, color: "#444", lineHeight: 1.6, margin: 0 }}>{q.explanation}</p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 12, color: "#aaa" }}>GAPSA Policy Quiz · 2025–26</div>
+          {!submitted ? (
+            <button onClick={handleSubmit} disabled={selected === null}
+              style={{
+                background: selected === null ? "#e5e7eb" : PENN_BLUE,
+                color: selected === null ? "#aaa" : "#fff",
+                border: "none", borderRadius: 8, padding: "10px 22px",
+                fontSize: 14, fontWeight: 700,
+                cursor: selected === null ? "default" : "pointer",
+              }}>
+              Submit Answer
+            </button>
+          ) : (
+            <button onClick={handleNext}
+              style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              {current + 1 >= total ? "See Results" : "Next Question →"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // ROOT APP
 // ============================================================
 
@@ -1840,6 +2281,8 @@ export default function GAPSAFinanceWizard() {
         {mode === "deadlines" && <DeadlinesView />}
         {mode === "funds"     && <FundsReference />}
         {mode === "forms"     && <FormsLinks />}
+        {mode === "guide"     && <ProcessGuide setMode={setMode} />}
+        {mode === "quiz"      && <PolicyQuiz />}
       </div>
 
       <div style={{ textAlign: "center", padding: "18px", borderTop: "1px solid #e5e7eb", background: "#fff", fontSize: 12, color: "#aaa" }}>
