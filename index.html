@@ -12,5 +12,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Hidden form for Netlify Forms — quiz certification submissions -->
+    <form name="quiz-certification" data-netlify="true" hidden>
+      <input type="hidden" name="form-name" value="quiz-certification" />
+      <input name="name" type="text" />
+      <input name="organization" type="text" />
+      <input name="score" type="text" />
+      <input name="completed_at" type="text" />
+      <input name="questions_count" type="text" />
+    </form>
   </body>
 </html>

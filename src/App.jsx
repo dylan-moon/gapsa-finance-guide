@@ -439,6 +439,14 @@ const CONFIG = {
     appealEmail:                 "gapsa.finance@gapsa.upenn.edu",
   },
 
+  // --- Quick Resources (update URLs each year) ---
+  resources: {
+    preferredVendorsUrl:    "https://cms.business-services.upenn.edu/purchasing-services/purchasing-overview/",
+    newVendorOnboardingUrl: "https://cms.business-services.upenn.edu/purchasing-services/vendor-resources/",
+    ispOnboardingEmail:     "gradcenter@upenn.edu",
+    gapsaLogoUrl:           "https://www.gapsa.upenn.edu", // Replace with direct logo asset link
+  },
+
   // --- Organization Types ---
   orgTypes: [
     { id: "g12",             label: "G12+ Student Government",     description: "School-level graduate student government" },
@@ -566,6 +574,7 @@ function NavBar({ mode, setMode }) {
     { id: "funding",   label: "Find Funding",   icon: <Search size={15} /> },
     { id: "guide",     label: "How It Works",   icon: <Info size={15} /> },
     { id: "resources", label: "Resources",      icon: <BookOpen size={15} /> },
+    { id: "cert",      label: "Certification",  icon: <CheckCircle size={15} /> },
   ];
   return (
     <nav style={{ background: PENN_BLUE, borderBottom: `3px solid ${PENN_RED}` }}>
@@ -829,6 +838,43 @@ function FundingWizard() {
 // EVENT PLANNER (multi-step calculator)
 // ============================================================
 
+// Parse a simple CSV file into an array of vendor objects.
+// Handles double-quoted fields (for the dietary column which uses ; as delimiter).
+function parseVendorCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const fields = [];
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        const end = line.indexOf('"', i + 1);
+        fields.push(end === -1 ? line.slice(i + 1) : line.slice(i + 1, end));
+        i = end === -1 ? line.length : end + 2;
+      } else {
+        const end = line.indexOf(",", i);
+        fields.push(end === -1 ? line.slice(i) : line.slice(i, end));
+        i = end === -1 ? line.length : end + 1;
+      }
+    }
+    const row = Object.fromEntries(headers.map((h, idx) => [h, (fields[idx] || "").trim()]));
+    return {
+      id:          row.id,
+      name:        row.name,
+      category:    row.category,
+      subcategory: row.subcategory,
+      perPerson:   { low: Number(row.perPersonLow) || 0, high: Number(row.perPersonHigh) || 0 },
+      minOrder:    row.minOrder ? Number(row.minOrder) : null,
+      dietary:     row.dietary ? row.dietary.split(";").map((d) => d.trim()).filter(Boolean) : [],
+      notes:       row.notes || "",
+      url:         row.url   || undefined,
+      contact:     row.contact || undefined,
+      recommended: row.recommended === "true",
+    };
+  }).filter((v) => v.id && v.name);
+}
+
 const PLANNER_STEPS = ["Event Details", "Attendance", "Budget Builder", "Your Summary"];
 
 const BUDGET_CATEGORIES = [
@@ -845,8 +891,8 @@ const BUDGET_CATEGORIES = [
   { id: "other",       label: "Other",                limitKey: null               },
 ];
 
-function VendorSuggestions({ category, attendees, onSelectVendor }) {
-  const relevant = CONFIG.vendors.filter((v) => {
+function VendorSuggestions({ category, attendees, onSelectVendor, vendors = CONFIG.vendors }) {
+  const relevant = vendors.filter((v) => {
     if (category === "food")    return ["catering", "pizza", "truck", "snacks"].includes(v.subcategory);
     if (category === "alcohol") return false; // no vendor suggestions for alcohol
     if (category === "delivery")return ["catering", "pizza", "truck"].includes(v.subcategory);
@@ -896,10 +942,22 @@ const loadPlannerState = () => {
 function EventPlanner() {
   const saved = useMemo(loadPlannerState, []);
 
+  const [vendors, setVendors] = useState(CONFIG.vendors);
+  useEffect(() => {
+    fetch("/vendors.csv")
+      .then((r) => r.ok ? r.text() : Promise.reject())
+      .then((text) => {
+        const parsed = parseVendorCSV(text);
+        if (parsed.length > 0) setVendors(parsed);
+      })
+      .catch(() => { /* silently fall back to CONFIG.vendors */ });
+  }, []);
+
   const [step,       setStep]       = useState(saved.step       ?? 0);
   const [eventDate,  setEventDate]  = useState(saved.eventDate  ?? "");
   const [eventType,  setEventType]  = useState(saved.eventType  ?? null);
   const [hasAlcohol, setHasAlcohol] = useState(saved.hasAlcohol ?? false);
+  const [isTicketed, setIsTicketed] = useState(saved.isTicketed ?? null);
   const [attendees,  setAttendees]  = useState(saved.attendees  ?? 50);
   const [lineItems,  setLineItems]  = useState(saved.lineItems  ?? []);
   const [newCat,     setNewCat]     = useState("food");
@@ -921,9 +979,9 @@ function EventPlanner() {
 
   useEffect(() => {
     localStorage.setItem(PLANNER_STORAGE_KEY, JSON.stringify(
-      { step, eventDate, eventType, hasAlcohol, attendees, lineItems, gapsaAmount }
+      { step, eventDate, eventType, hasAlcohol, isTicketed, attendees, lineItems, gapsaAmount }
     ));
-  }, [step, eventDate, eventType, hasAlcohol, attendees, lineItems, gapsaAmount]);
+  }, [step, eventDate, eventType, hasAlcohol, isTicketed, attendees, lineItems, gapsaAmount]);
 
   const selectedType = CONFIG.eventTypes.find((e) => e.id === eventType);
   const deadlines = eventDate ? computeEventDeadlines(eventDate) : null;
@@ -1229,6 +1287,40 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               )}
             </div>
           )}
+
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "block", marginBottom: 10 }}>Will this be a ticketed event?</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[true, false].map((val) => (
+                <button key={String(val)} onClick={() => setIsTicketed(val)} style={{
+                  flex: 1, padding: "10px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: isTicketed === val ? 600 : 400,
+                  background: isTicketed === val ? PENN_BLUE : "#f8fafc",
+                  color: isTicketed === val ? "#fff" : "#555",
+                  border: isTicketed === val ? `2px solid ${PENN_BLUE}` : "2px solid #e5e7eb",
+                }}>
+                  {val ? "Yes" : "No"}
+                </button>
+              ))}
+            </div>
+            {isTicketed === true && (
+              <div style={{ marginTop: 10 }}>
+                <Alert type="info">
+                  <strong>Ticketing rules:</strong> If GAPSA funds more than{" "}
+                  <strong>{Math.round(CONFIG.compliance.eventbriteThreshold * 100)}%</strong> of your total event budget,
+                  you must use the <strong>Graduate Events Eventbrite account</strong> for all ticketing — your personal or
+                  club account is not permitted. Request access via the link below.
+                  {" "}<a href={CONFIG.compliance.eventbriteRequestUrl} target="_blank" rel="noreferrer" style={{ color: "#1e40af" }}>Request Eventbrite access →</a>
+                </Alert>
+              </div>
+            )}
+            {isTicketed === false && (
+              <div style={{ marginTop: 10 }}>
+                <Alert type="success">
+                  Free admission — no ticketing rules apply.
+                </Alert>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1343,6 +1435,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               <VendorSuggestions
                 category={newCat}
                 attendees={attendees}
+                vendors={vendors}
                 onSelectVendor={(vendor, estimate) => {
                   setNewDesc(vendor.name);
                   setNewAmt(String(estimate));
@@ -1429,6 +1522,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
                 { label: "Event Type",  value: selectedType?.label || "—" },
                 { label: "Attendees",   value: attendees },
                 { label: "Alcohol",     value: hasAlcohol ? "Yes" : "No" },
+                { label: "Ticketed",    value: isTicketed === null ? "—" : isTicketed ? "Yes" : "No" },
                 { label: "Est. Budget", value: fmt(totalBudget) },
                 { label: "Budget Cap",  value: maxBudget ? fmt(maxBudget) : "—" },
               ].map((item, i) => (
@@ -1560,6 +1654,10 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               "Display the GAPSA logo on all promotional materials.",
               hasAlcohol && "Food must be served alongside any alcohol.",
               hasAlcohol && "Maximum 2 alcoholic drinks per person.",
+              isTicketed && totalBudget > 0 && gapsaAmountNum / totalBudget > CONFIG.compliance.eventbriteThreshold
+                && <span>Ticketed event: GAPSA funds {">"}40% of budget — must use <strong>Graduate Events Eventbrite</strong> account.{" "}<a href={CONFIG.compliance.eventbriteRequestUrl} target="_blank" rel="noreferrer" style={{ color: PENN_BLUE }}>Request access →</a></span>,
+              isTicketed && totalBudget > 0 && gapsaAmountNum / totalBudget <= CONFIG.compliance.eventbriteThreshold
+                && "Ticketed event with GAPSA funding ≤40% — personal or club Eventbrite account is permitted.",
               gapsaAmountNum > CONFIG.compliance.auditThreshold && `Receiving over ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA — reserve 2 tickets for GAPSA representatives. Event is subject to in-person audit.`,
               <span>Submit your <a href={CONFIG.compliance.aarUrl} target="_blank" rel="noreferrer" style={{ color: PENN_BLUE }}>After-Action Review (AAR)</a> — due Dec 15 (fall) or May 15 (spring).</span>,
               "Do NOT use personal funds or expect reimbursement without advance approval.",
@@ -1587,7 +1685,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               <button onClick={downloadSummaryPDF} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", color: "#555", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "1.5px solid #ddd" }}>
                 <ClipboardList size={14} /> Save as PDF
               </button>
-              <button onClick={() => { localStorage.removeItem(PLANNER_STORAGE_KEY); setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>
+              <button onClick={() => { localStorage.removeItem(PLANNER_STORAGE_KEY); setStep(0); setEventDate(""); setEventType(null); setHasAlcohol(false); setIsTicketed(null); setAttendees(50); setLineItems([]); setGapsaAmount(""); }} style={{ background: PENN_RED, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>Start Over</button>
             </div>}
       </div>
     </div>
@@ -1852,15 +1950,18 @@ const PROCESS_PHASES = [
     time: "2–4 weeks out",
     color: "#10b981",
     items: [
-      "Confirm vendor selection and place catering orders.",
+      "⭐ Use Penn-approved (preferred) vendors whenever possible — payments process faster and admin burden is lower. Strongly preferred by GAPSA.",
+      "If using a new vendor not yet in Penn's system: expect 3 extra weeks for onboarding. Submit vendor details to your financial administrator early.",
       "If serving alcohol: register with University Life at least 10 business days before the event.",
-      `If GAPSA is funding > ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your budget, set up ticketing via Graduate Events Eventbrite.`,
-      "New vendors (first time with Penn) need onboarding — allow 3 extra weeks.",
-      "Confirm speaker/performer contracts and ISP onboarding if needed.",
+      `If GAPSA is funding > ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your budget, all ticketing must go through Graduate Events Eventbrite. Submit the request at least 7 business days before the ticket sale opens.`,
+      "For speakers/performers: complete ISP onboarding through the Graduate Student Center before the event.",
     ],
     links: [
-      { label: "Alcohol Event Registration (ULife)", url: CONFIG.compliance.alcoholRegistrationUrl },
-      { label: "Event Planner Tool", tab: "planner" },
+      { label: "⭐ Preferred Vendors (Penn Purchasing)", url: CONFIG.resources.preferredVendorsUrl },
+      { label: "New Vendor Onboarding", url: CONFIG.resources.newVendorOnboardingUrl },
+      { label: "ISP Onboarding (Speakers)", url: `mailto:${CONFIG.resources.ispOnboardingEmail}` },
+      { label: "Alcohol Registration (ULife)", url: CONFIG.compliance.alcoholRegistrationUrl },
+      { label: "Eventbrite Request", url: CONFIG.compliance.eventbriteRequestUrl },
     ],
   },
   {
@@ -1908,14 +2009,191 @@ const PROCESS_PHASES = [
   },
 ];
 
+const PICKLEBALL_EXAMPLE = {
+  org: "Graduate Racquet Club",
+  event: "Spring Pickleball Social",
+  description: "A casual 60-person social event with Bon Appétit catering, held at Penn's Palestra courts. SGEF-funded.",
+  timeline: [
+    {
+      when: "3+ months before",
+      color: "#7c3aed",
+      title: "Foundation",
+      steps: [
+        "Confirmed OSA registration is current at pennclubs.upenn.edu",
+        "Identified venue: Penn Palestra (indoor courts), Houston Hall as backup",
+        "Set target attendance: 60 students",
+        "Decided on preferred vendor: Bon Appétit/Penn Dining Catering (preferred Penn vendor — faster payment processing)",
+      ],
+    },
+    {
+      when: "8 weeks before",
+      color: "#0284c7",
+      title: "Apply",
+      steps: [
+        "Submitted SGEF application via Universal Funding Application",
+        "Budget: $1,200 total — requesting $900 from GAPSA (75%)",
+        "Food: $720 (Bon Appétit, $12/person × 60 — well under $25 cap)",
+        "Supplies/equipment: $300 · Printing/promo: $120 · Miscellaneous: $60",
+        "Note in application: 'Using Penn preferred vendor for all catering'",
+      ],
+    },
+    {
+      when: "6 weeks before",
+      color: "#059669",
+      title: "Approved",
+      steps: [
+        "Received SGEF award: $800 (Finance Committee approved at monthly meeting)",
+        "GAPSA share = 67% of budget — under 40% Eventbrite threshold ✓",
+        "Award under $2,500 — no audit required ✓",
+      ],
+    },
+    {
+      when: "4 weeks before",
+      color: "#d97706",
+      title: "Prepare",
+      steps: [
+        "Confirmed Bon Appétit catering order (sandwiches + sides, min 25-person order met)",
+        "Submitted event to GAPSA newsletter for promotion",
+        "Set up Eventbrite via personal account (under 40% threshold — Graduate Events account not required)",
+        "Confirmed no alcohol → University Life registration not required for this event",
+      ],
+    },
+    {
+      when: "1 week before",
+      color: "#dc2626",
+      title: "Pre-Event",
+      steps: [
+        "Submitted payment request via Smartsheet (7-day minimum met)",
+        "Shared event details with GAPSA Finance: gapsa.funds@gapsa.upenn.edu",
+        "Printed 2 reserved tickets for GAPSA reps (GAPSA award was under $2,500, so this was optional — but done as courtesy)",
+      ],
+    },
+    {
+      when: "Day of event",
+      color: "#7c3aed",
+      title: "Event Day",
+      steps: [
+        "Greeted 54 attendees (close to 60 target)",
+        "Confirmed Bon Appétit delivery arrived on time",
+        "Kept all receipts from any day-of purchases",
+        "Noted any deviations from planned budget for AAR",
+      ],
+    },
+    {
+      when: "Within 10 days after",
+      color: "#059669",
+      title: "Close Out",
+      steps: [
+        "Submitted all receipts for reimbursement within 10-day window",
+        "Filed After-Action Report via Smartsheet (well before Dec 15 fall deadline)",
+        "Sent thank-you to Bon Appétit catering contact for next time",
+        "Updated club records with final spend: $1,140 (under budget) ✓",
+      ],
+    },
+  ],
+};
+
 function ProcessGuide({ setMode }) {
+  const [showExample, setShowExample] = useState(false);
+
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: PENN_BLUE, marginBottom: 6 }}>How the GAPSA Funding Process Works</h2>
-        <p style={{ color: "#555", fontSize: 14, lineHeight: 1.6 }}>
-          From idea to after-action report — here's the full funding lifecycle so you know what to expect at each stage.
-        </p>
+      {/* Example side-drawer overlay */}
+      {showExample && (
+        <>
+          <div
+            onClick={() => setShowExample(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }}
+          />
+          <div style={{
+            position: "fixed", top: 0, right: 0, bottom: 0, width: "min(520px, 100vw)",
+            background: "#fff", zIndex: 201, overflowY: "auto",
+            boxShadow: "-4px 0 32px rgba(0,0,0,0.18)",
+            display: "flex", flexDirection: "column",
+          }}>
+            {/* Drawer header */}
+            <div style={{ background: PENN_BLUE, padding: "20px 24px", flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Example Walkthrough</div>
+                  <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>{PICKLEBALL_EXAMPLE.org}</div>
+                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 2 }}>{PICKLEBALL_EXAMPLE.event}</div>
+                </div>
+                <button onClick={() => setShowExample(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 13 }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 10, lineHeight: 1.5 }}>
+                {PICKLEBALL_EXAMPLE.description}
+              </div>
+            </div>
+
+            {/* Drawer body */}
+            <div style={{ padding: "20px 24px", flex: 1 }}>
+              {PICKLEBALL_EXAMPLE.timeline.map((phase, i) => (
+                <div key={i} style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: phase.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: phase.color, textTransform: "uppercase", letterSpacing: 0.5 }}>{phase.when}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#222" }}>{phase.title}</span>
+                  </div>
+                  <ul style={{ paddingLeft: 20, margin: 0 }}>
+                    {phase.steps.map((s, j) => (
+                      <li key={j} style={{ fontSize: 13, color: "#444", lineHeight: 1.65, marginBottom: 3 }}>{s}</li>
+                    ))}
+                  </ul>
+                  {i < PICKLEBALL_EXAMPLE.timeline.length - 1 && (
+                    <div style={{ marginLeft: 3, marginTop: 8, height: 16, width: 2, background: "#e5e7eb" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: PENN_BLUE, marginBottom: 6 }}>How the GAPSA Funding Process Works</h2>
+          <p style={{ color: "#555", fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+            From idea to after-action report — here's the full funding lifecycle so you know what to expect at each stage.
+          </p>
+        </div>
+        <button onClick={() => setShowExample(true)} style={{
+          background: "#fff", border: `2px solid ${PENN_BLUE}`, color: PENN_BLUE,
+          borderRadius: 8, padding: "8px 14px", cursor: "pointer",
+          fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
+          flexShrink: 0,
+        }}>
+          <BookOpen size={14} /> See Example →
+        </button>
+      </div>
+
+      {/* Quick Resources box */}
+      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "14px 18px", marginBottom: 28 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Quick Resources</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <a href={CONFIG.resources.preferredVendorsUrl} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            ⭐ Preferred Vendors <ExternalLink size={10} />
+          </a>
+          <a href={CONFIG.resources.newVendorOnboardingUrl} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            New Vendor Onboarding <ExternalLink size={10} />
+          </a>
+          <a href={`mailto:${CONFIG.resources.ispOnboardingEmail}`}
+            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            ISP Onboarding (Speakers) <ExternalLink size={10} />
+          </a>
+          <a href={CONFIG.compliance.paymentRequestUrl} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            Payment Request Form <ExternalLink size={10} />
+          </a>
+          <a href={CONFIG.resources.gapsaLogoUrl} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            GAPSA Website <ExternalLink size={10} />
+          </a>
+        </div>
       </div>
 
       {/* Vertical timeline */}
@@ -2056,35 +2334,77 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     explanation: `Reimbursement requests must be submitted within ${CONFIG.deadlines.reimbursementWindowDays} calendar days of the purchase. Late submissions may be denied. Always keep itemized original receipts.`,
   },
+  {
+    question: "What is the per-person spending cap for a standard event (e.g., a social or workshop)?",
+    options: ["$15/person", "$25/person", "$40/person", "$70/person"],
+    correct: 1,
+    explanation: `Standard events are capped at ${fmt(CONFIG.spendingLimits.standardEvent.max)}/person. If alcohol is served at a standard event, the food + alcohol combined cap of $70/person becomes the effective ceiling.`,
+  },
+  {
+    question: "What is the per-person spending cap for a Gala or Formal event?",
+    options: ["$40/person", "$60/person", "$70/person", "$85/person"],
+    correct: 3,
+    explanation: `Galas and formal events have a higher cap of ${fmt(CONFIG.eventTypes.find((e) => e.id === "gala").perPersonCap)}/person. Note: if alcohol is served, a separate $70/person food+alcohol sub-cap still applies within that limit.`,
+  },
+  {
+    question: "What is the maximum GAPSA can fund for a speaker honorarium per external speaker per year?",
+    options: ["$500", "$750", "$1,000", "$1,500"],
+    correct: 3,
+    explanation: `Speaker honoraria are capped at ${fmt(CONFIG.spendingLimits.speakerHonoraria.max)} per external speaker per year. The speaker must be onboarded as an Individual Service Provider (ISP) Recipient through the Graduate Student Center.`,
+  },
+  {
+    question: "How far in advance does GAPSA recommend submitting your funding application for best results?",
+    options: ["2 weeks", "4 weeks (minimum)", "8–12 weeks", "2–3 months (recommended)"],
+    correct: 3,
+    explanation: `While the minimum lead time is ${CONFIG.deadlines.minLeadDays} days (4 weeks), GAPSA strongly recommends submitting ${CONFIG.deadlines.recommendedLeadDays}+ days in advance (2–3 months). Earlier submissions allow time for questions, revisions, and budget adjustments.`,
+  },
+  {
+    question: "How many days in advance must a payment request be submitted before the expected payment date?",
+    options: ["2 days", "5 days", "7 days", "14 days"],
+    correct: 2,
+    explanation: `Payment requests must be submitted at least ${CONFIG.deadlines.paymentRequestDays} days before the expected payment or purchase date. For new or first-time vendors not yet in Penn's system, allow an additional 3 weeks for vendor onboarding.`,
+  },
+  {
+    question: "If your event budget exceeds what threshold, does it require approval from the full General Assembly (not just the Finance Committee)?",
+    options: ["$2,500", "$5,000", "$7,500", "$10,000"],
+    correct: 3,
+    explanation: `Funding requests over ${fmt(CONFIG.compliance.financeCommitteeApprovalCap)} cannot be approved by the Finance Committee alone — they must go to the full GAPSA General Assembly. This process takes 8–12 weeks, so plan accordingly.`,
+  },
 ];
 
-function PolicyQuiz() {
-  const [current, setCurrent]   = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore]       = useState(0);
-  const [done, setDone]         = useState(false);
-  const [answers, setAnswers]   = useState([]);
+// certMode=true  → official certification: requires 100%, collects name/org, submits to Netlify
+// certMode=false → practice mode: 75% pass threshold, no form, retake freely
+function PolicyQuiz({ certMode = false }) {
+  const [current,      setCurrent]      = useState(0);
+  const [selected,     setSelected]     = useState(null);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [score,        setScore]        = useState(0);
+  const [done,         setDone]         = useState(false);
+  const [answers,      setAnswers]      = useState([]);
+  const [completedAt,  setCompletedAt]  = useState(null);
+  // Cert form state (certMode only)
+  const [certName,      setCertName]      = useState("");
+  const [certOrg,       setCertOrg]       = useState("");
+  const [certSubmitting,setCertSubmitting] = useState(false);
+  const [certSubmitted, setCertSubmitted]  = useState(false);
 
-  const q = QUIZ_QUESTIONS[current];
+  const q     = QUIZ_QUESTIONS[current];
   const total = QUIZ_QUESTIONS.length;
 
-  function handleSelect(idx) {
-    if (submitted) return;
-    setSelected(idx);
-  }
+  function handleSelect(idx) { if (!submitted) setSelected(idx); }
 
   function handleSubmit() {
     if (selected === null) return;
-    const correct = selected === q.correct;
+    const wasCorrect = selected === q.correct;
     setSubmitted(true);
-    if (correct) setScore((s) => s + 1);
-    setAnswers((prev) => [...prev, { selected, correct: q.correct, wasCorrect: correct }]);
+    if (wasCorrect) setScore((s) => s + 1);
+    setAnswers((prev) => [...prev, { selected, correct: q.correct, wasCorrect }]);
   }
 
   function handleNext() {
     if (current + 1 >= total) {
       setDone(true);
+      setCompletedAt(new Date());
     } else {
       setCurrent((c) => c + 1);
       setSelected(null);
@@ -2093,47 +2413,163 @@ function PolicyQuiz() {
   }
 
   function handleRestart() {
-    setCurrent(0);
-    setSelected(null);
-    setSubmitted(false);
-    setScore(0);
-    setDone(false);
-    setAnswers([]);
+    setCurrent(0); setSelected(null); setSubmitted(false);
+    setScore(0); setDone(false); setAnswers([]);
+    setCompletedAt(null); setCertName(""); setCertOrg("");
+    setCertSubmitting(false); setCertSubmitted(false);
   }
 
+  async function handleCertSubmit() {
+    if (!certName.trim() || !certOrg.trim()) return;
+    setCertSubmitting(true);
+    try {
+      await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          "form-name":      "quiz-certification",
+          name:             certName.trim(),
+          organization:     certOrg.trim(),
+          score:            `${score}/${total}`,
+          completed_at:     (completedAt || new Date()).toISOString(),
+          questions_count:  String(total),
+        }).toString(),
+      });
+    } catch (_) { /* best-effort — show cert regardless */ }
+    setCertSubmitting(false);
+    setCertSubmitted(true);
+  }
+
+  // ── Results screen ────────────────────────────────────────────
   if (done) {
+    const passed = certMode ? score === total : score >= Math.ceil(total * 0.75);
+
+    // Official cert: perfect score → show cert form or certificate
+    if (certMode && passed) {
+      if (certSubmitted) {
+        return (
+          <div style={{ maxWidth: 660, margin: "0 auto" }}>
+            <div style={{
+              background: "#fff", border: `2px solid ${PENN_BLUE}`, borderRadius: 14,
+              padding: "48px 40px", textAlign: "center",
+              boxShadow: "0 4px 28px rgba(1,31,91,0.10)",
+            }}>
+              <div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: PENN_RED, fontWeight: 700, marginBottom: 4 }}>
+                University of Pennsylvania
+              </div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>GAPSA Division of Finance · 2025–26</div>
+              <div style={{ borderTop: `1px solid #e5e7eb`, borderBottom: `1px solid #e5e7eb`, padding: "20px 0", margin: "0 0 24px" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: PENN_BLUE, marginBottom: 16 }}>
+                  Treasurer Policy Certification
+                </div>
+                <div style={{ fontSize: 13, color: "#888", marginBottom: 6 }}>This certifies that</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: PENN_BLUE, margin: "6px 0" }}>{certName}</div>
+                <div style={{ fontSize: 14, color: "#555" }}>of <strong>{certOrg}</strong></div>
+                <div style={{ fontSize: 13, color: "#888", marginTop: 10, lineHeight: 1.6 }}>
+                  has successfully completed the GAPSA Finance Policy Certification<br />
+                  with a score of <strong>{score}/{total} (100%)</strong>
+                </div>
+                <div style={{ fontSize: 12, color: "#aaa", marginTop: 6 }}>
+                  {completedAt?.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}
+                </div>
+              </div>
+              <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 16px", marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <CheckCircle size={15} color="#10b981" />
+                <span style={{ fontSize: 13, color: "#065f46", fontWeight: 600 }}>
+                  Certification submitted to GAPSA Finance Division
+                </span>
+              </div>
+              <button onClick={() => window.print()}
+                style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Print Certificate
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Cert form — collect name + org
+      return (
+        <div style={{ maxWidth: 600, margin: "0 auto" }}>
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "36px 32px" }}>
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>🎉</div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, marginBottom: 6 }}>Perfect Score!</h2>
+              <div style={{ fontSize: 36, fontWeight: 800, color: "#10b981", marginBottom: 6 }}>{score}/{total}</div>
+              <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
+                Enter your information below to complete your official certification.
+                Your record will be submitted to GAPSA Finance.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "block", marginBottom: 6 }}>
+                Your Full Name <span style={{ color: PENN_RED }}>*</span>
+              </label>
+              <input value={certName} onChange={(e) => setCertName(e.target.value)}
+                placeholder="e.g. Jane Smith"
+                style={{ width: "100%", padding: "10px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "block", marginBottom: 6 }}>
+                Organization / Club Name <span style={{ color: PENN_RED }}>*</span>
+              </label>
+              <input value={certOrg} onChange={(e) => setCertOrg(e.target.value)}
+                placeholder="e.g. Graduate Racquet Club at Penn"
+                style={{ width: "100%", padding: "10px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", marginBottom: 24, fontSize: 12, color: "#888" }}>
+              Completion time: {completedAt?.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}
+            </div>
+
+            <button onClick={handleCertSubmit}
+              disabled={!certName.trim() || !certOrg.trim() || certSubmitting}
+              style={{
+                width: "100%", padding: "12px", borderRadius: 8, border: "none",
+                background: !certName.trim() || !certOrg.trim() ? "#e5e7eb" : PENN_BLUE,
+                color: !certName.trim() || !certOrg.trim() ? "#aaa" : "#fff",
+                fontSize: 15, fontWeight: 700,
+                cursor: !certName.trim() || !certOrg.trim() ? "default" : "pointer",
+              }}>
+              {certSubmitting ? "Submitting…" : "Submit Certification →"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Failed (either mode) or practice pass
     const pct = Math.round((score / total) * 100);
-    const passed = score >= Math.ceil(total * 0.75);
     return (
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "36px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 56, marginBottom: 12 }}>{passed ? "🎉" : "📚"}</div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: PENN_BLUE, marginBottom: 8 }}>
-            {passed ? "Great work!" : "Keep studying!"}
+          <div style={{ fontSize: 48, marginBottom: 10 }}>{passed ? "🎉" : "📚"}</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, marginBottom: 6 }}>
+            {passed ? "Great work!" : certMode ? "Not quite — 100% required" : "Keep studying!"}
           </h2>
-          <div style={{ fontSize: 40, fontWeight: 800, color: passed ? "#10b981" : PENN_RED, marginBottom: 4 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: passed ? "#10b981" : PENN_RED, marginBottom: 4 }}>
             {score}/{total}
           </div>
-          <div style={{ color: "#666", fontSize: 15, marginBottom: 28 }}>
-            {pct}% correct · {passed ? "You know your GAPSA policy!" : "Review the incorrect answers below, then try again."}
+          <div style={{ color: "#666", fontSize: 14, marginBottom: certMode && !passed ? 12 : 24 }}>
+            {pct}% · {passed ? "You know your GAPSA policy!" : "Review the errors below, then try again."}
           </div>
+          {certMode && !passed && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 16px", marginBottom: 24, fontSize: 13, color: "#7f1d1d" }}>
+              The official certification requires a <strong>perfect score (100%)</strong>. Review the explanations for each incorrect answer and retake when ready.
+            </div>
+          )}
 
-          {/* Per-question result summary */}
           <div style={{ textAlign: "left", marginBottom: 28 }}>
             {QUIZ_QUESTIONS.map((qq, i) => {
               const ans = answers[i];
+              if (!ans) return null;
               return (
-                <div key={i} style={{
-                  display: "flex", alignItems: "flex-start", gap: 10,
-                  padding: "10px 0", borderBottom: i < total - 1 ? "1px solid #f0f0f0" : "none",
-                }}>
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < total - 1 ? "1px solid #f0f0f0" : "none" }}>
                   <div style={{ flexShrink: 0, marginTop: 2 }}>
-                    {ans.wasCorrect
-                      ? <CheckCircle size={16} color="#10b981" />
-                      : <X size={16} color={PENN_RED} />}
+                    {ans.wasCorrect ? <CheckCircle size={15} color="#10b981" /> : <X size={15} color={PENN_RED} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, color: "#333", marginBottom: 3 }}>{qq.question}</div>
+                    <div style={{ fontSize: 13, color: "#333", marginBottom: 2 }}>{qq.question}</div>
                     {!ans.wasCorrect && (
                       <div style={{ fontSize: 12, color: "#666" }}>
                         Your answer: <span style={{ color: PENN_RED, fontWeight: 600 }}>{qq.options[ans.selected]}</span>
@@ -2145,60 +2581,56 @@ function PolicyQuiz() {
               );
             })}
           </div>
-
           <button onClick={handleRestart}
             style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "11px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            Retake Quiz
+            {certMode ? "Try Again" : "Retake Quiz"}
           </button>
         </div>
       </div>
     );
   }
 
+  // ── Question screen ───────────────────────────────────────────
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
-      {/* Progress bar */}
+      {certMode && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 14px", marginBottom: 14, fontSize: 12, color: "#7f1d1d", textAlign: "center", fontWeight: 600 }}>
+          Official Certification — 100% required to pass. All {total} questions must be answered correctly.
+        </div>
+      )}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: PENN_BLUE }}>Question {current + 1} of {total}</span>
           <span style={{ fontSize: 12, color: "#888" }}>{score} correct so far</span>
         </div>
         <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${((current) / total) * 100}%`, background: PENN_BLUE, borderRadius: 3, transition: "width 0.3s" }} />
+          <div style={{ height: "100%", width: `${(current / total) * 100}%`, background: PENN_BLUE, borderRadius: 3, transition: "width 0.3s" }} />
         </div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "28px 28px 24px" }}>
-        {/* Question */}
-        <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.5, marginBottom: 22 }}>
-          {q.question}
-        </p>
+        <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.5, marginBottom: 22 }}>{q.question}</p>
 
-        {/* Options */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
           {q.options.map((opt, idx) => {
             let bg = "#f9fafb", border = "#e5e7eb", color = "#333";
             if (submitted) {
-              if (idx === q.correct)   { bg = "#f0fdf4"; border = "#10b981"; color = "#065f46"; }
-              else if (idx === selected) { bg = "#fef2f2"; border = PENN_RED;  color = "#7f1d1d"; }
-            } else if (selected === idx) {
-              bg = "#eff6ff"; border = PENN_BLUE; color = PENN_BLUE;
-            }
+              if (idx === q.correct)    { bg = "#f0fdf4"; border = "#10b981"; color = "#065f46"; }
+              else if (idx === selected){ bg = "#fef2f2"; border = PENN_RED;  color = "#7f1d1d"; }
+            } else if (selected === idx) { bg = "#eff6ff"; border = PENN_BLUE; color = PENN_BLUE; }
             return (
-              <button key={idx} onClick={() => handleSelect(idx)}
-                style={{
-                  width: "100%", textAlign: "left", padding: "12px 14px",
-                  background: bg, border: `2px solid ${border}`, borderRadius: 8,
-                  color, fontSize: 14, fontWeight: selected === idx || (submitted && idx === q.correct) ? 600 : 400,
-                  cursor: submitted ? "default" : "pointer", transition: "all 0.15s",
-                  display: "flex", alignItems: "center", gap: 10,
-                }}>
+              <button key={idx} onClick={() => handleSelect(idx)} style={{
+                width: "100%", textAlign: "left", padding: "12px 14px",
+                background: bg, border: `2px solid ${border}`, borderRadius: 8,
+                color, fontSize: 14, fontWeight: selected === idx || (submitted && idx === q.correct) ? 600 : 400,
+                cursor: submitted ? "default" : "pointer", transition: "all 0.15s",
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
                 <span style={{
                   width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
                   background: submitted && idx === q.correct ? "#10b981" : submitted && idx === selected ? PENN_RED : selected === idx ? PENN_BLUE : "#e5e7eb",
-                  color: (submitted || selected === idx) ? "#fff" : "#888",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 12, fontWeight: 700,
+                  color: submitted || selected === idx ? "#fff" : "#888",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700,
                 }}>
                   {String.fromCharCode(65 + idx)}
                 </span>
@@ -2208,7 +2640,6 @@ function PolicyQuiz() {
           })}
         </div>
 
-        {/* Explanation (after submit) */}
         {submitted && (
           <div style={{
             background: selected === q.correct ? "#f0fdf4" : "#fef2f2",
@@ -2222,23 +2653,21 @@ function PolicyQuiz() {
           </div>
         )}
 
-        {/* Buttons */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 12, color: "#aaa" }}>GAPSA Policy Quiz · 2025–26</div>
+          <div style={{ fontSize: 12, color: "#aaa" }}>
+            {certMode ? "GAPSA Policy Certification · 2025–26" : "GAPSA Policy Quiz · 2025–26"}
+          </div>
           {!submitted ? (
-            <button onClick={handleSubmit} disabled={selected === null}
-              style={{
-                background: selected === null ? "#e5e7eb" : PENN_BLUE,
-                color: selected === null ? "#aaa" : "#fff",
-                border: "none", borderRadius: 8, padding: "10px 22px",
-                fontSize: 14, fontWeight: 700,
-                cursor: selected === null ? "default" : "pointer",
-              }}>
+            <button onClick={handleSubmit} disabled={selected === null} style={{
+              background: selected === null ? "#e5e7eb" : PENN_BLUE,
+              color: selected === null ? "#aaa" : "#fff",
+              border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 700,
+              cursor: selected === null ? "default" : "pointer",
+            }}>
               Submit Answer
             </button>
           ) : (
-            <button onClick={handleNext}
-              style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={handleNext} style={{ background: PENN_BLUE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               {current + 1 >= total ? "See Results" : "Next Question →"}
             </button>
           )}
@@ -2334,21 +2763,54 @@ function GuideTab({ setMode }) {
         <DeadlinesView />
       </div>
 
-      {/* ── Policy Quiz ───────────────────────────────────────── */}
+      {/* ── Policy Quiz (Practice Mode) ──────────────────────── */}
       <div style={{ maxWidth: 800, margin: "48px auto 0" }}>
-        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: 36, marginBottom: 24 }}>
+        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: 36, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <CheckCircle size={18} color={PENN_BLUE} />
             <h3 style={{ fontSize: 18, fontWeight: 700, color: PENN_BLUE, margin: 0 }}>
-              Test Your Knowledge
+              Practice Quiz
             </h3>
           </div>
           <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
-            Eight questions covering the key rules every treasurer should know.
+            {QUIZ_QUESTIONS.length} questions covering the key rules every treasurer should know. Retake as many times as you like.
           </p>
+        </div>
+        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#92400e", display: "flex", alignItems: "center", gap: 8 }}>
+          <CheckCircle size={14} color="#d97706" />
+          Ready to make it official? Visit the <strong style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => setMode("cert")}>Certification tab</strong> to earn your GAPSA Treasurer Certification (100% required).
         </div>
         <PolicyQuiz />
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CERTIFICATION TAB
+// ============================================================
+
+function CertTab() {
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <CheckCircle size={22} color={PENN_BLUE} />
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, margin: 0 }}>
+            Treasurer Policy Certification
+          </h2>
+        </div>
+        <p style={{ color: "#555", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+          Complete this quiz with a <strong>perfect score (100%)</strong> to receive your official GAPSA Finance Policy Certification.
+          Your name, organization, and completion record will be submitted to the GAPSA Finance Division.
+        </p>
+      </div>
+
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", marginBottom: 28, fontSize: 13, color: "#1e40af" }}>
+        <strong>Note for treasurers:</strong> GAPSA recommends that all group treasurers complete this certification before submitting their first funding application. The certification covers spending limits, compliance rules, deadlines, and application requirements.
+      </div>
+
+      <PolicyQuiz certMode={true} />
     </div>
   );
 }
@@ -2380,6 +2842,7 @@ export default function GAPSAFinanceWizard() {
         {mode === "funding"   && <FundingTab />}
         {mode === "guide"     && <GuideTab setMode={setMode} />}
         {mode === "resources" && <ResourcesTab />}
+        {mode === "cert"      && <CertTab />}
       </div>
 
       <div style={{ textAlign: "center", padding: "18px", borderTop: "1px solid #e5e7eb", background: "#fff", fontSize: 12, color: "#aaa" }}>

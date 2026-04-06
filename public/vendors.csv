@@ -1,0 +1,17 @@
+id,name,category,subcategory,perPersonLow,perPersonHigh,minOrder,dietary,notes,url,contact,recommended
+bon-appetit,Bon Appétit / Penn Dining Catering,On-Campus Catering,catering,22,38,25,"vegetarian;vegan;gluten-free;halal","Preferred Penn vendor. Can be procured via your financial administrator. Wide range of menu packages.",https://dining.upenn.edu,pennfoodservices@upenn.edu,true
+houston-hall,Houston Hall Event Services,On-Campus Catering,catering,20,35,20,"vegetarian;vegan","On-campus venue + catering combo. Coordinate through Graduate Student Center.",https://gsc.upenn.edu,gradcenter@upenn.edu,true
+chipotle,Chipotle Catering,Mexican,catering,13,18,20,"vegetarian;vegan;gluten-free","Bowls, burritos, tacos. Chips & guac add ~$2/person. Easy advance ordering online.",https://www.chipotle.com/catering,,false
+panera,Panera Bread Catering,Sandwiches / Soup,catering,10,16,,"vegetarian;vegan","Boxed lunches, soup/salad. Good for daytime meetings. 24-hr advance order.",https://www.panerabread.com/catering,,false
+chick-fil-a,Chick-fil-A Catering,American,catering,12,16,,,"Nugget trays, sandwich packages. Popular for afternoon events. Order 24-48 hrs ahead.",https://www.chick-fil-a.com/catering,,false
+wawa,Wawa Catering (Hoagies & Platters),Sandwiches,catering,8,13,,vegetarian,"Hoagie trays, breakfast items. Very budget-friendly. Order via Wawa app or in-store.",https://www.wawa.com,,false
+jersey-mikes,Jersey Mike's Catering,Sandwiches,catering,9,14,,vegetarian,"Sub trays. Easy to split for large groups. Good budget option.",https://www.jerseymikes.com/catering,,false
+di-brunos,Di Bruno Bros. Catering,Italian / Charcuterie,catering,18,30,15,"vegetarian;gluten-free","Antipasto, cheese boards, Italian platters. Popular for receptions and galas.",https://www.dibruno.com/catering,,false
+zahav-catering,Federal Donuts / CookNSolo Catering,Israeli / American,catering,15,22,20,"vegetarian;halal","Federal Donuts fried chicken platters are popular for large events. Must order via catering line.",,, false
+saads,Saad's Halal Restaurant,Halal / Middle Eastern,catering,10,16,10,"halal;vegetarian","Local University City halal spot. Platters and family-style. Great for diverse groups.",,, false
+district-taco,District Taco Catering,Mexican,catering,11,16,15,"vegetarian;vegan;gluten-free","Taco bars and burrito bowls. Customizable. Popular for large casual events.",,, false
+snap-kitchen,Local Food Trucks (varies),Food Trucks,truck,10,18,,"vegetarian;vegan;halal;gluten-free","Penn's campus hosts many food trucks. Varies widely by vendor. Coordinate truck bookings 2–3 weeks ahead via OSA.",,, false
+allegros,Allegro's Pizza (local),Pizza,pizza,4,7,,vegetarian,"Classic Philly pizza. Very budget-friendly for large groups (~3 slices/person). Popular for casual events.",,, false
+pizza-hut-catering,Pizza / Pie Catering (general),Pizza,pizza,5,9,,vegetarian,"Pizza is often the most cost-effective food option. Budget ~3 slices per person.",,, false
+insomnia,Insomnia Cookies,Dessert,snacks,3,6,,vegetarian,"Cookies. Great as a supplement or for GBMs. Late-night delivery available.",https://insomniacookies.com,,false
+goldie,Goldie (Falafel),Israeli / Vegetarian,catering,13,18,10,"vegetarian;vegan;halal","Fully vegetarian falafel restaurant. Popular with diverse dietary needs. On campus at 3401 Walnut.",,, false
