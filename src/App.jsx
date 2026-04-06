@@ -1846,7 +1846,7 @@ const PROCESS_PHASES = [
       "Watch your email for follow-up questions from the Finance Committee.",
     ],
     links: [
-      { label: "Universal Funding Application", url: CONFIG.funds.sgef.applicationUrl },
+      { label: "Universal Funding Application", url: CONFIG.funds.find((f) => f.id === "sgef").applicationUrl },
       { label: "Submission Deadlines", tab: "deadlines" },
     ],
   },
