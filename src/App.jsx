@@ -1846,7 +1846,7 @@ const PROCESS_PHASES = [
       "Watch your email for follow-up questions from the Finance Committee.",
     ],
     links: [
-      { label: "Universal Funding Application", url: CONFIG.forms.ufaUrl },
+      { label: "Universal Funding Application", url: CONFIG.funds.sgef.applicationUrl },
       { label: "Submission Deadlines", tab: "deadlines" },
     ],
   },
@@ -1879,7 +1879,7 @@ const PROCESS_PHASES = [
       "Share event details with GAPSA reps if your event is subject to audit.",
     ],
     links: [
-      { label: "GAPSA Newsletter Submission", url: CONFIG.forms.newsletterUrl },
+      { label: "GAPSA Newsletter Submission", url: CONFIG.compliance.newsletterUrl },
     ],
   },
   {
