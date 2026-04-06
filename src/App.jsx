@@ -1911,6 +1911,8 @@ function FormsLinks() {
 // PROCESS GUIDE — "How It Works"
 // ============================================================
 
+const _sgefUrl = CONFIG.funds.find((f) => f.id === "sgef").applicationUrl;
+
 const PROCESS_PHASES = [
   {
     id: 1,
@@ -1920,13 +1922,11 @@ const PROCESS_PHASES = [
     items: [
       "Define your event concept, goals, and target audience.",
       "Estimate attendance and build a rough budget.",
-      "Decide which funding sources you'll apply to (SGEF, IPF, AEF, etc.).",
-      "Check that your org is registered with Student Orgs & Leadership.",
+      <span>Decide which funding sources fit your org (<a href="#" onClick={(e) => e.preventDefault()} data-tab="funding" style={{ color: "#6366f1" }}>SGEF, IPF, AEF, etc.</a>).</span>,
+      <span>Confirm your org is registered with OSA via <a href={CONFIG.compliance.osaRegistrationUrl} target="_blank" rel="noreferrer" style={{ color: "#6366f1" }}>PennClubs</a>.</span>,
+      <span>Review <a href="#" onClick={(e) => e.preventDefault()} data-tab="resources" style={{ color: "#6366f1" }}>GAPSA spending limits</a> before finalizing your budget.</span>,
     ],
-    links: [
-      { label: "All Funding Sources", tab: "funding" },
-      { label: "Spending Limits Reference", tab: "resources" },
-    ],
+    links: [],
   },
   {
     id: 2,
@@ -1934,15 +1934,12 @@ const PROCESS_PHASES = [
     time: "4–8 weeks out",
     color: "#0ea5e9",
     items: [
-      `Submit the Universal Funding Application (UFA) — minimum ${CONFIG.deadlines.minLeadDays} days before your event.`,
-      "Attach a detailed budget using GAPSA's approved line-item categories.",
-      "Large requests (> $10,000) go to General Assembly — budget 8–12 weeks.",
-      "Watch your email for follow-up questions from the Finance Committee.",
+      <span>Submit the <a href={_sgefUrl} target="_blank" rel="noreferrer" style={{ color: "#0ea5e9" }}>Universal Funding Application (UFA)</a> — minimum {CONFIG.deadlines.minLeadDays} days before your event.</span>,
+      "Build your budget using GAPSA's line-item categories (food, delivery, venue, speaker, etc.).",
+      `Requests over ${fmt(CONFIG.compliance.financeCommitteeApprovalCap)} go to the full General Assembly — budget 8–12 weeks.`,
+      "Watch your email for Finance Committee follow-up questions.",
     ],
-    links: [
-      { label: "Universal Funding Application", url: CONFIG.funds.find((f) => f.id === "sgef").applicationUrl },
-      { label: "Submission Deadlines", tab: "guide" },
-    ],
+    links: [],
   },
   {
     id: 3,
@@ -1950,19 +1947,13 @@ const PROCESS_PHASES = [
     time: "2–4 weeks out",
     color: "#10b981",
     items: [
-      "⭐ Use Penn-approved (preferred) vendors whenever possible — payments process faster and admin burden is lower. Strongly preferred by GAPSA.",
-      "If using a new vendor not yet in Penn's system: expect 3 extra weeks for onboarding. Submit vendor details to your financial administrator early.",
-      "If serving alcohol: register with University Life at least 10 business days before the event.",
-      `If GAPSA is funding > ${Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your budget, all ticketing must go through Graduate Events Eventbrite. Submit the request at least 7 business days before the ticket sale opens.`,
-      "For speakers/performers: complete ISP onboarding through the Graduate Student Center before the event.",
+      <span>⭐ Use <a href={CONFIG.resources.preferredVendorsUrl} target="_blank" rel="noreferrer" style={{ color: "#10b981" }}>Penn-approved preferred vendors</a> whenever possible — payments process faster and admin burden is lower.</span>,
+      <span>New vendor not yet in Penn's system? <a href={CONFIG.resources.newVendorOnboardingUrl} target="_blank" rel="noreferrer" style={{ color: "#10b981" }}>Onboard them</a> early — expect 3 extra weeks for processing.</span>,
+      <span>Serving alcohol? <a href={CONFIG.compliance.alcoholRegistrationUrl} target="_blank" rel="noreferrer" style={{ color: "#10b981" }}>Register with University Life</a> at least 10 business days before the event.</span>,
+      <span>GAPSA funding {">"} {Math.round(CONFIG.compliance.eventbriteThreshold * 100)}% of your budget? All ticketing must use <a href={CONFIG.compliance.eventbriteRequestUrl} target="_blank" rel="noreferrer" style={{ color: "#10b981" }}>Graduate Events Eventbrite</a>.</span>,
+      <span>Speaker or performer? Complete <a href={`mailto:${CONFIG.resources.ispOnboardingEmail}`} style={{ color: "#10b981" }}>ISP onboarding</a> through the Graduate Student Center before the event.</span>,
     ],
-    links: [
-      { label: "⭐ Preferred Vendors (Penn Purchasing)", url: CONFIG.resources.preferredVendorsUrl },
-      { label: "New Vendor Onboarding", url: CONFIG.resources.newVendorOnboardingUrl },
-      { label: "ISP Onboarding (Speakers)", url: `mailto:${CONFIG.resources.ispOnboardingEmail}` },
-      { label: "Alcohol Registration (ULife)", url: CONFIG.compliance.alcoholRegistrationUrl },
-      { label: "Eventbrite Request", url: CONFIG.compliance.eventbriteRequestUrl },
-    ],
+    links: [],
   },
   {
     id: 4,
@@ -1970,14 +1961,12 @@ const PROCESS_PHASES = [
     time: "1–2 weeks out",
     color: "#f59e0b",
     items: [
-      "Send event info to GAPSA for newsletter inclusion (deadline: 14 days before).",
-      "Display GAPSA logo on all promotional materials per funding agreement.",
-      "Confirm final headcount for catering orders.",
+      <span>Submit your event to the <a href={CONFIG.compliance.newsletterUrl} target="_blank" rel="noreferrer" style={{ color: "#f59e0b" }}>GAPSA newsletter</a> — deadline: 14 days before the event.</span>,
+      "Display the GAPSA logo on all promotional materials per your funding agreement.",
+      "Confirm final headcount with your caterer.",
       "Share event details with GAPSA reps if your event is subject to audit.",
     ],
-    links: [
-      { label: "GAPSA Newsletter Submission", url: CONFIG.compliance.newsletterUrl },
-    ],
+    links: [],
   },
   {
     id: 5,
@@ -1985,10 +1974,10 @@ const PROCESS_PHASES = [
     time: "Day of event",
     color: PENN_RED,
     items: [
-      "Track actual attendance — you'll need this for your AAR.",
-      `If funded > ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA, reserve 2 tickets for GAPSA reps.`,
+      "Track actual attendance — you'll need exact numbers for your AAR.",
+      `If funded > ${fmt(CONFIG.compliance.auditThreshold)} from GAPSA, reserve 2 tickets for GAPSA representatives.`,
       "Collect all receipts — reimbursements require original itemized receipts.",
-      "Ensure alcohol service follows University policy (food must be served, max 2 drinks/person).",
+      "Alcohol service: food must be served alongside, max 2 drinks per person.",
     ],
     links: [],
   },
@@ -1999,95 +1988,108 @@ const PROCESS_PHASES = [
     color: "#8b5cf6",
     items: [
       `Submit reimbursement requests within ${CONFIG.deadlines.reimbursementWindowDays} calendar days of each purchase.`,
-      "File your After-Action Report (AAR) — Fall deadline: Dec 15, Spring: May 15.",
-      "Provide actual attendance and spending figures in your AAR.",
+      <span>File your <a href={CONFIG.compliance.aarUrl} target="_blank" rel="noreferrer" style={{ color: "#8b5cf6" }}>After-Action Report (AAR)</a> — Fall deadline: Dec 15, Spring: May 15.</span>,
+      "Include actual attendance and final spending figures in your AAR.",
       "Late or incomplete AARs may affect future funding eligibility.",
     ],
-    links: [
-      { label: "After-Action Report Form", url: CONFIG.compliance.aarUrl },
-    ],
+    links: [],
   },
 ];
 
 const PICKLEBALL_EXAMPLE = {
   org: "Graduate Racquet Club",
   event: "Spring Pickleball Social",
-  description: "A casual 60-person social event with Bon Appétit catering, held at Penn's Palestra courts. SGEF-funded.",
+  meta: [
+    { icon: "👥", label: "Attendees", value: "60 students" },
+    { icon: "📍", label: "Venue", value: "Penn Palestra" },
+    { icon: "💰", label: "Fund", value: "SGEF" },
+    { icon: "🍱", label: "Caterer", value: "Bon Appétit (preferred)" },
+  ],
   timeline: [
     {
       when: "3+ months before",
+      icon: "🏗️",
       color: "#7c3aed",
       title: "Foundation",
       steps: [
-        "Confirmed OSA registration is current at pennclubs.upenn.edu",
-        "Identified venue: Penn Palestra (indoor courts), Houston Hall as backup",
-        "Set target attendance: 60 students",
-        "Decided on preferred vendor: Bon Appétit/Penn Dining Catering (preferred Penn vendor — faster payment processing)",
+        { text: "Confirmed OSA registration is current", tag: "admin" },
+        { text: "Chose venue: Penn Palestra (indoor courts), Houston Hall backup" },
+        { text: "Selected Bon Appétit / Penn Dining as caterer", tag: "preferred", tagLabel: "⭐ Preferred vendor" },
       ],
     },
     {
       when: "8 weeks before",
+      icon: "📋",
       color: "#0284c7",
       title: "Apply",
       steps: [
-        "Submitted SGEF application via Universal Funding Application",
-        "Budget: $1,200 total — requesting $900 from GAPSA (75%)",
-        "Food: $720 (Bon Appétit, $12/person × 60 — well under $25 cap)",
-        "Supplies/equipment: $300 · Printing/promo: $120 · Miscellaneous: $60",
-        "Note in application: 'Using Penn preferred vendor for all catering'",
+        { text: "Submitted SGEF application via Universal Funding Application" },
+        { text: "Noted preferred vendor use in application to strengthen the ask" },
+      ],
+      budget: [
+        { label: "Food — Bon Appétit ($12/person × 60)", amount: "$720", note: "under $25 cap ✓" },
+        { label: "Supplies & equipment", amount: "$300" },
+        { label: "Printing & promo", amount: "$120" },
+        { label: "Miscellaneous", amount: "$60" },
+        { label: "Total", amount: "$1,200", total: true },
+        { label: "Requested from GAPSA (75%)", amount: "$900", highlight: true },
       ],
     },
     {
       when: "6 weeks before",
+      icon: "✅",
       color: "#059669",
       title: "Approved",
-      steps: [
-        "Received SGEF award: $800 (Finance Committee approved at monthly meeting)",
-        "GAPSA share = 67% of budget — under 40% Eventbrite threshold ✓",
-        "Award under $2,500 — no audit required ✓",
+      steps: [],
+      checks: [
+        { ok: true,  text: "SGEF award: $800 from Finance Committee" },
+        { ok: true,  text: "GAPSA share = 67% — under 40% Eventbrite threshold (no special account needed)" },
+        { ok: true,  text: "Award under $2,500 — no in-person audit required" },
+        { ok: false, text: "Requested $900 — received $800 (awards are competitive, plan for variance)" },
       ],
     },
     {
       when: "4 weeks before",
+      icon: "📦",
       color: "#d97706",
       title: "Prepare",
       steps: [
-        "Confirmed Bon Appétit catering order (sandwiches + sides, min 25-person order met)",
-        "Submitted event to GAPSA newsletter for promotion",
-        "Set up Eventbrite via personal account (under 40% threshold — Graduate Events account not required)",
-        "Confirmed no alcohol → University Life registration not required for this event",
+        { text: "Confirmed Bon Appétit order: sandwiches + sides (min 25 people — met)" },
+        { text: "Submitted event listing to GAPSA newsletter" },
+        { text: "Set up Eventbrite on personal account (GAPSA share < 40%)", tag: "ok", tagLabel: "✓ No special account" },
+        { text: "No alcohol → University Life registration not required", tag: "ok", tagLabel: "✓ Skipped" },
       ],
     },
     {
       when: "1 week before",
+      icon: "📅",
       color: "#dc2626",
       title: "Pre-Event",
       steps: [
-        "Submitted payment request via Smartsheet (7-day minimum met)",
-        "Shared event details with GAPSA Finance: gapsa.funds@gapsa.upenn.edu",
-        "Printed 2 reserved tickets for GAPSA reps (GAPSA award was under $2,500, so this was optional — but done as courtesy)",
+        { text: "Submitted payment request via Smartsheet (7-day minimum met)" },
+        { text: "Sent event summary to gapsa.funds@gapsa.upenn.edu" },
       ],
     },
     {
       when: "Day of event",
+      icon: "🎾",
       color: "#7c3aed",
       title: "Event Day",
       steps: [
-        "Greeted 54 attendees (close to 60 target)",
-        "Confirmed Bon Appétit delivery arrived on time",
-        "Kept all receipts from any day-of purchases",
-        "Noted any deviations from planned budget for AAR",
+        { text: "54 attendees arrived (close to 60 target)", tag: "stat", tagLabel: "54 / 60" },
+        { text: "Bon Appétit delivery confirmed on arrival" },
+        { text: "Collected all day-of receipts" },
       ],
     },
     {
       when: "Within 10 days after",
+      icon: "📊",
       color: "#059669",
       title: "Close Out",
       steps: [
-        "Submitted all receipts for reimbursement within 10-day window",
-        "Filed After-Action Report via Smartsheet (well before Dec 15 fall deadline)",
-        "Sent thank-you to Bon Appétit catering contact for next time",
-        "Updated club records with final spend: $1,140 (under budget) ✓",
+        { text: "Submitted all receipts for reimbursement (within 10-day window)" },
+        { text: "Filed After-Action Report via Smartsheet before Dec 15 deadline" },
+        { text: "Final spend: $1,140 — $60 under budget", tag: "ok", tagLabel: "✓ Under budget" },
       ],
     },
   ],
@@ -2117,33 +2119,108 @@ function ProcessGuide({ setMode }) {
                 <div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Example Walkthrough</div>
                   <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>{PICKLEBALL_EXAMPLE.org}</div>
-                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 2 }}>{PICKLEBALL_EXAMPLE.event}</div>
+                  <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 2 }}>{PICKLEBALL_EXAMPLE.event}</div>
                 </div>
-                <button onClick={() => setShowExample(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontSize: 13 }}>
+                <button onClick={() => setShowExample(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
                   <X size={16} />
                 </button>
               </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 10, lineHeight: 1.5 }}>
-                {PICKLEBALL_EXAMPLE.description}
+              {/* Meta stat row */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
+                {PICKLEBALL_EXAMPLE.meta.map((m, i) => (
+                  <div key={i} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 8, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 14 }}>{m.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1 }}>{m.label}</div>
+                      <div style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{m.value}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Drawer body */}
             <div style={{ padding: "20px 24px", flex: 1 }}>
               {PICKLEBALL_EXAMPLE.timeline.map((phase, i) => (
-                <div key={i} style={{ marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: phase.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: phase.color, textTransform: "uppercase", letterSpacing: 0.5 }}>{phase.when}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#222" }}>{phase.title}</span>
+                <div key={i} style={{ marginBottom: 22 }}>
+                  {/* Phase header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      background: `${phase.color}18`, border: `2px solid ${phase.color}40`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 18, flexShrink: 0,
+                    }}>
+                      {phase.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{phase.title}</div>
+                      <div style={{ fontSize: 11, color: phase.color, fontWeight: 600 }}>{phase.when}</div>
+                    </div>
                   </div>
-                  <ul style={{ paddingLeft: 20, margin: 0 }}>
-                    {phase.steps.map((s, j) => (
-                      <li key={j} style={{ fontSize: 13, color: "#444", lineHeight: 1.65, marginBottom: 3 }}>{s}</li>
-                    ))}
-                  </ul>
+
+                  {/* Steps */}
+                  {phase.steps.length > 0 && (
+                    <div style={{ paddingLeft: 44 }}>
+                      {phase.steps.map((s, j) => (
+                        <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                          <div style={{ width: 5, height: 5, borderRadius: "50%", background: phase.color, marginTop: 6, flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 13, color: "#444", lineHeight: 1.55 }}>{s.text}</span>
+                            {s.tag && (
+                              <span style={{
+                                marginLeft: 6, fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                                background: s.tag === "preferred" ? "#fef3c7" : s.tag === "ok" ? "#dcfce7" : s.tag === "stat" ? "#eff6ff" : "#f3f4f6",
+                                color: s.tag === "preferred" ? "#92400e" : s.tag === "ok" ? "#166534" : s.tag === "stat" ? "#1e40af" : "#555",
+                              }}>
+                                {s.tagLabel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Budget table */}
+                  {phase.budget && (
+                    <div style={{ marginLeft: 44, marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+                      {phase.budget.map((row, j) => (
+                        <div key={j} style={{
+                          display: "flex", justifyContent: "space-between", alignItems: "center",
+                          padding: "6px 12px",
+                          borderTop: j > 0 ? "1px solid #e2e8f0" : "none",
+                          background: row.total ? "#eff6ff" : row.highlight ? "#f0fdf4" : "transparent",
+                          fontWeight: row.total || row.highlight ? 700 : 400,
+                        }}>
+                          <span style={{ fontSize: 12, color: row.total ? PENN_BLUE : row.highlight ? "#166534" : "#555" }}>{row.label}</span>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: row.total ? PENN_BLUE : row.highlight ? "#166534" : "#333" }}>{row.amount}</span>
+                            {row.note && <span style={{ fontSize: 10, color: "#10b981", marginLeft: 4 }}>{row.note}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Compliance checks */}
+                  {phase.checks && (
+                    <div style={{ marginLeft: 44, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                      {phase.checks.map((c, j) => (
+                        <div key={j} style={{
+                          display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 10px", borderRadius: 7,
+                          background: c.ok ? "#f0fdf4" : "#fff7ed",
+                          border: `1px solid ${c.ok ? "#86efac" : "#fed7aa"}`,
+                        }}>
+                          <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>{c.ok ? "✅" : "⚠️"}</span>
+                          <span style={{ fontSize: 12, color: c.ok ? "#166534" : "#92400e", lineHeight: 1.5 }}>{c.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {i < PICKLEBALL_EXAMPLE.timeline.length - 1 && (
-                    <div style={{ marginLeft: 3, marginTop: 8, height: 16, width: 2, background: "#e5e7eb" }} />
+                    <div style={{ marginLeft: 17, marginTop: 10, height: 14, width: 2, background: "#e5e7eb" }} />
                   )}
                 </div>
               ))}
@@ -2218,12 +2295,18 @@ function ProcessGuide({ setMode }) {
               {phase.id}
             </div>
 
-            {/* Phase card */}
-            <div style={{
-              background: "#fff", border: `1px solid #e5e7eb`,
-              borderLeft: `4px solid ${phase.color}`,
-              borderRadius: 10, padding: "16px 20px",
-            }}>
+            {/* Phase card — click delegation for data-tab inline links */}
+            <div
+              style={{
+                background: "#fff", border: `1px solid #e5e7eb`,
+                borderLeft: `4px solid ${phase.color}`,
+                borderRadius: 10, padding: "16px 20px",
+              }}
+              onClick={(e) => {
+                const tab = e.target.closest("[data-tab]")?.getAttribute("data-tab");
+                if (tab) { e.preventDefault(); setMode(tab); }
+              }}
+            >
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
                 <span style={{ fontWeight: 700, fontSize: 16, color: PENN_BLUE }}>{phase.label}</span>
                 <span style={{
@@ -2234,33 +2317,11 @@ function ProcessGuide({ setMode }) {
                 </span>
               </div>
 
-              <ul style={{ paddingLeft: 18, margin: "0 0 12px", listStyle: "disc" }}>
+              <ul style={{ paddingLeft: 18, margin: 0, listStyle: "disc" }}>
                 {phase.items.map((item, i) => (
                   <li key={i} style={{ fontSize: 13, color: "#444", lineHeight: 1.65, marginBottom: 3 }}>{item}</li>
                 ))}
               </ul>
-
-              {phase.links.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {phase.links.map((link, i) => (
-                    link.tab ? (
-                      <button key={i} onClick={() => setMode(link.tab)}
-                        style={{ fontSize: 12, fontWeight: 600, color: phase.color, background: `${phase.color}12`,
-                          border: `1px solid ${phase.color}40`, borderRadius: 6,
-                          padding: "4px 10px", cursor: "pointer" }}>
-                        {link.label} →
-                      </button>
-                    ) : (
-                      <a key={i} href={link.url} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12, fontWeight: 600, color: phase.color, background: `${phase.color}12`,
-                          border: `1px solid ${phase.color}40`, borderRadius: 6,
-                          padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        {link.label} <ExternalLink size={10} />
-                      </a>
-                    )
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ))}
