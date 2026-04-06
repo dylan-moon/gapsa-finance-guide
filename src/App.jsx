@@ -562,14 +562,10 @@ const Alert = ({ type = "info", children }) => {
 
 function NavBar({ mode, setMode }) {
   const tabs = [
-    { id: "wizard",    label: "Funding Finder", icon: <Search size={15} /> },
     { id: "planner",   label: "Event Planner",  icon: <Calendar size={15} /> },
-    { id: "limits",    label: "Spending Limits", icon: <DollarSign size={15} /> },
-    { id: "deadlines", label: "Deadlines",       icon: <Clock size={15} /> },
-    { id: "funds",     label: "All Funds",       icon: <BookOpen size={15} /> },
-    { id: "forms",     label: "Forms & Links",   icon: <ClipboardList size={15} /> },
-    { id: "guide",     label: "How It Works",    icon: <Info size={15} /> },
-    { id: "quiz",      label: "Policy Quiz",     icon: <Star size={15} /> },
+    { id: "funding",   label: "Find Funding",   icon: <Search size={15} /> },
+    { id: "guide",     label: "How It Works",   icon: <Info size={15} /> },
+    { id: "resources", label: "Resources",      icon: <BookOpen size={15} /> },
   ];
   return (
     <nav style={{ background: PENN_BLUE, borderBottom: `3px solid ${PENN_RED}` }}>
@@ -1830,8 +1826,8 @@ const PROCESS_PHASES = [
       "Check that your org is registered with Student Orgs & Leadership.",
     ],
     links: [
-      { label: "All Funding Sources", tab: "funds" },
-      { label: "Spending Limits Reference", tab: "limits" },
+      { label: "All Funding Sources", tab: "funding" },
+      { label: "Spending Limits Reference", tab: "resources" },
     ],
   },
   {
@@ -1847,7 +1843,7 @@ const PROCESS_PHASES = [
     ],
     links: [
       { label: "Universal Funding Application", url: CONFIG.funds.find((f) => f.id === "sgef").applicationUrl },
-      { label: "Submission Deadlines", tab: "deadlines" },
+      { label: "Submission Deadlines", tab: "guide" },
     ],
   },
   {
@@ -2253,6 +2249,111 @@ function PolicyQuiz() {
 }
 
 // ============================================================
+// TAB WRAPPERS — composite views for the 4-tab structure
+// ============================================================
+
+// Sub-nav pill used by FundingTab and ResourcesTab
+function SubNav({ options, active, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 3, width: "fit-content", marginBottom: 24 }}>
+      {options.map((opt) => (
+        <button key={opt.id} onClick={() => onChange(opt.id)} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "7px 16px", border: "none", borderRadius: 6, cursor: "pointer",
+          background: active === opt.id ? PENN_BLUE : "transparent",
+          color: active === opt.id ? "#fff" : "#555",
+          fontWeight: active === opt.id ? 600 : 400,
+          fontSize: 13, transition: "all 0.15s",
+        }}>
+          {opt.icon} {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// FundingTab — Funding Finder wizard + Browse All Funds
+function FundingTab() {
+  const [view, setView] = useState("wizard");
+  return (
+    <div>
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+        <SubNav
+          options={[
+            { id: "wizard", label: "Help Me Choose", icon: <Search size={13} /> },
+            { id: "browse", label: "Browse All Funds", icon: <BookOpen size={13} /> },
+          ]}
+          active={view}
+          onChange={setView}
+        />
+      </div>
+      {view === "wizard" ? <FundingWizard /> : <FundsReference />}
+    </div>
+  );
+}
+
+// ResourcesTab — Spending Limits + Forms & Links
+function ResourcesTab() {
+  const [section, setSection] = useState("limits");
+  return (
+    <div>
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+        <SubNav
+          options={[
+            { id: "limits", label: "Spending Limits", icon: <DollarSign size={13} /> },
+            { id: "forms",  label: "Forms & Links",   icon: <ClipboardList size={13} /> },
+          ]}
+          active={section}
+          onChange={setSection}
+        />
+      </div>
+      {section === "limits" ? <SpendingLimits /> : <FormsLinks />}
+    </div>
+  );
+}
+
+// GuideTab — How It Works timeline + Submission Calendar + Policy Quiz
+function GuideTab({ setMode }) {
+  return (
+    <div>
+      <ProcessGuide setMode={setMode} />
+
+      {/* ── Submission Calendar ───────────────────────────────── */}
+      <div style={{ maxWidth: 800, margin: "48px auto 0" }}>
+        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: 36, marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <Calendar size={18} color={PENN_BLUE} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: PENN_BLUE, margin: 0 }}>
+              2025–26 Submission Calendar
+            </h3>
+          </div>
+          <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
+            Plan your application around these Finance Committee review windows.
+          </p>
+        </div>
+        <DeadlinesView />
+      </div>
+
+      {/* ── Policy Quiz ───────────────────────────────────────── */}
+      <div style={{ maxWidth: 800, margin: "48px auto 0" }}>
+        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: 36, marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <CheckCircle size={18} color={PENN_BLUE} />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: PENN_BLUE, margin: 0 }}>
+              Test Your Knowledge
+            </h3>
+          </div>
+          <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
+            Eight questions covering the key rules every treasurer should know.
+          </p>
+        </div>
+        <PolicyQuiz />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // ROOT APP
 // ============================================================
 
@@ -2275,14 +2376,10 @@ export default function GAPSAFinanceWizard() {
       </div>
 
       <div style={{ padding: "28px 20px 60px" }}>
-        {mode === "wizard"    && <FundingWizard />}
         {mode === "planner"   && <EventPlanner />}
-        {mode === "limits"    && <SpendingLimits />}
-        {mode === "deadlines" && <DeadlinesView />}
-        {mode === "funds"     && <FundsReference />}
-        {mode === "forms"     && <FormsLinks />}
-        {mode === "guide"     && <ProcessGuide setMode={setMode} />}
-        {mode === "quiz"      && <PolicyQuiz />}
+        {mode === "funding"   && <FundingTab />}
+        {mode === "guide"     && <GuideTab setMode={setMode} />}
+        {mode === "resources" && <ResourcesTab />}
       </div>
 
       <div style={{ textAlign: "center", padding: "18px", borderTop: "1px solid #e5e7eb", background: "#fff", fontSize: 12, color: "#aaa" }}>
