@@ -881,7 +881,7 @@ function parseVendorCSV(text) {
   }).filter((v) => v.id && v.name);
 }
 
-const PLANNER_STEPS = ["Event Details", "Attendance", "Budget Builder", "Your Summary"];
+const PLANNER_STEPS = ["Event Details", "Budget Builder", "Your Summary"];
 
 const BUDGET_CATEGORIES = [
   { id: "food",        label: "Food & Catering",     limitKey: "foodAlcohol"      },
@@ -964,7 +964,7 @@ function EventPlanner() {
       .catch(() => { /* silently fall back to CONFIG.vendors */ });
   }, []);
 
-  const [step,       setStep]       = useState(saved.step       ?? 0);
+  const [step,       setStep]       = useState(Math.min(saved.step ?? 0, 2));
   const [eventDate,  setEventDate]  = useState(saved.eventDate  ?? "");
   const [eventType,  setEventType]  = useState(saved.eventType  ?? null);
   const [hasAlcohol, setHasAlcohol] = useState(saved.hasAlcohol ?? false);
@@ -1025,8 +1025,7 @@ function EventPlanner() {
   const removeLineItem = (id) => setLineItems(lineItems.filter((li) => li.id !== id));
 
   const canAdvanceStep = () => {
-    if (step === 0) return !!eventDate && !!eventType;
-    if (step === 1) return attendees >= 1;
+    if (step === 0) return !!eventDate && !!eventType && attendees >= 1;
     return true;
   };
 
@@ -1222,7 +1221,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
         <p style={{ color: "#666", fontSize: 13, margin: "6px 0 0" }}>Build your event budget and get personalized deadline alerts.</p>
       </div>
 
-      <StepIndicator current={step} total={4} labels={PLANNER_STEPS} />
+      <StepIndicator current={step} total={3} labels={PLANNER_STEPS} />
 
       {/* ── Step 0: Event Details ── */}
       {step === 0 && (
@@ -1332,55 +1331,24 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {/* ── Step 1: Attendance ── */}
-      {step === 1 && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "block", marginBottom: 6 }}>
-            <Users size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />
-            Expected Attendees: <span style={{ color: PENN_RED, fontSize: 22, fontWeight: 700 }}>{attendees}</span>
-          </label>
-          <input type="range" min={5} max={150} step={5} value={Math.min(attendees, 150)} onChange={(e) => setAttendees(Number(e.target.value))}
-            style={{ width: "100%", accentColor: PENN_BLUE, margin: "12px 0" }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#999", marginBottom: 20 }}><span>5</span><span>150+</span></div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="number" min={1} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value)))}
-              style={{ padding: "8px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 15, width: 120, textAlign: "center" }}
-            />
-            {attendees > 150 && <span style={{ fontSize: 12, color: "#888" }}>Large event — slider capped at 150</span>}
-          </div>
-
-          {selectedType && (
-            <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[
-                { label: alcoholExpandsCap ? "Food & Alcohol Cap" : "Total Event Cap", val: effectivePerPersonCap * attendees, sub: `${attendees} × ${fmt(effectivePerPersonCap)}/person${alcoholExpandsCap ? " — food+alcohol cap applies" : ""}` },
-                showFoodAlcoholCap && { label: "Food & Alcohol Sub-Cap", val: CONFIG.spendingLimits.foodAlcohol.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.foodAlcohol.max)}/person (within event cap)` },
-                { label: "Delivery Cap", val: CONFIG.spendingLimits.delivery.max * attendees, sub: `${attendees} × ${fmt(CONFIG.spendingLimits.delivery.max)}/person` },
-              ].filter(Boolean).map((row, i) => (
-                <div key={i} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 12, color: "#888" }}>{row.label}</div>
-                  <div style={{ fontWeight: 700, fontSize: 20, color: PENN_BLUE }}>{fmt(row.val)}</div>
-                  <div style={{ fontSize: 11, color: "#aaa" }}>{row.sub}</div>
-                </div>
-              ))}
-              {hasAlcohol && (
-                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 12, color: "#92400e" }}>Max Alcoholic Drinks</div>
-                  <div style={{ fontWeight: 700, fontSize: 20, color: "#92400e" }}>{attendees * 2}</div>
-                  <div style={{ fontSize: 11, color: "#d97706" }}>2 drinks × {attendees} people</div>
-                </div>
-              )}
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "#333", display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <Users size={14} />
+              Estimated Attendance
+            </label>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input type="number" min={1} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value)))}
+                style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 15, width: 120, textAlign: "center" }}
+              />
+              <span style={{ fontSize: 13, color: "#888" }}>people</span>
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* ── Step 2: Budget Builder ── */}
-      {step === 2 && (
+      {/* ── Step 1: Budget Builder ── */}
+      {step === 1 && (
         <div>
           {/* Running totals */}
           <div style={{ display: "grid", gridTemplateColumns: showFoodAlcoholCap ? "1fr 1fr" : "1fr", gap: 10, marginBottom: 16 }}>
@@ -1520,8 +1488,8 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
         </div>
       )}
 
-      {/* ── Step 3: Summary ── */}
-      {step === 3 && (
+      {/* ── Step 2: Summary ── */}
+      {step === 2 && (
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: PENN_BLUE, marginBottom: 16 }}>Your Event Summary</h3>
 
@@ -1687,7 +1655,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
         {step > 0
           ? <button onClick={() => setStep(step - 1)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "1px solid #ddd", color: "#666", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}><ChevronLeft size={15} /> Back</button>
           : <div />}
-        {step < 3
+        {step < 2
           ? <button onClick={() => setStep(step + 1)} disabled={!canAdvanceStep()} style={{ display: "flex", alignItems: "center", gap: 4, background: canAdvanceStep() ? PENN_BLUE : "#ccc", color: "#fff", padding: "9px 22px", borderRadius: 8, cursor: canAdvanceStep() ? "pointer" : "default", fontSize: 13, fontWeight: 600, border: "none" }}>Next <ChevronRight size={15} /></button>
           : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={openPrefilledApplication} style={{ display: "flex", alignItems: "center", gap: 5, background: PENN_BLUE, color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: "none" }}>
