@@ -859,18 +859,24 @@ function parseVendorCSV(text) {
       }
     }
     const row = Object.fromEntries(headers.map((h, idx) => [h, (fields[idx] || "").trim()]));
+    const pLow  = row.perPersonLow  ? Number(row.perPersonLow)  : null;
+    const pHigh = row.perPersonHigh ? Number(row.perPersonHigh) : null;
     return {
-      id:          row.id,
-      name:        row.name,
-      category:    row.category,
-      subcategory: row.subcategory,
-      perPerson:   { low: Number(row.perPersonLow) || 0, high: Number(row.perPersonHigh) || 0 },
-      minOrder:    row.minOrder ? Number(row.minOrder) : null,
-      dietary:     row.dietary ? row.dietary.split(";").map((d) => d.trim()).filter(Boolean) : [],
-      notes:       row.notes || "",
-      url:         row.url   || undefined,
-      contact:     row.contact || undefined,
-      recommended: row.recommended === "true",
+      id:                  row.id,
+      name:                row.name,
+      category:            row.category,
+      subcategory:         row.subcategory,
+      perPerson:           (pLow && pHigh) ? { low: pLow, high: pHigh } : null,
+      minOrder:            row.minOrder ? Number(row.minOrder) : null,
+      dietary:             row.dietary ? row.dietary.split(";").map((d) => d.trim()).filter(Boolean) : [],
+      notes:               row.notes || "",
+      url:                 row.url     || undefined,
+      contact:             row.contact || undefined,
+      recommended:         row.recommended      === "true",
+      pennApproved:        row.pennApproved      === "true",
+      isSmallBusiness:     row.isSmallBusiness   === "true",
+      sustainabilityLevel: row.sustainabilityLevel ? Number(row.sustainabilityLevel) : null,
+      cuisines:            row.cuisines || "",
     };
   }).filter((v) => v.id && v.name);
 }
@@ -892,12 +898,14 @@ const BUDGET_CATEGORIES = [
 ];
 
 function VendorSuggestions({ category, attendees, onSelectVendor, vendors = CONFIG.vendors }) {
-  const relevant = vendors.filter((v) => {
-    if (category === "food")    return ["catering", "pizza", "truck", "snacks"].includes(v.subcategory);
-    if (category === "alcohol") return false; // no vendor suggestions for alcohol
-    if (category === "delivery")return ["catering", "pizza", "truck"].includes(v.subcategory);
-    return false;
-  });
+  const relevant = vendors
+    .filter((v) => {
+      if (category === "food")     return ["catering", "pizza", "truck", "snacks"].includes(v.subcategory);
+      if (category === "alcohol")  return false;
+      if (category === "delivery") return ["catering", "pizza", "truck"].includes(v.subcategory);
+      return false;
+    })
+    .sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
   if (relevant.length === 0) return null;
 
   return (
@@ -908,9 +916,10 @@ function VendorSuggestions({ category, attendees, onSelectVendor, vendors = CONF
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {relevant.slice(0, 6).map((v) => {
-          const midEst = Math.round(((v.perPerson.low + v.perPerson.high) / 2) * attendees);
+          const hasPrice = v.perPerson && v.perPerson.low > 0;
+          const midEst = hasPrice ? Math.round(((v.perPerson.low + v.perPerson.high) / 2) * attendees) : 0;
           return (
-            <button key={v.id} onClick={() => onSelectVendor(v, midEst)} style={{
+            <button key={v.id} onClick={() => onSelectVendor(v, hasPrice ? midEst : "")} style={{
               background: "#fff", border: "1px solid #e5e7eb", borderRadius: 7,
               padding: "8px 10px", cursor: "pointer", textAlign: "left",
             }}>
@@ -919,8 +928,10 @@ function VendorSuggestions({ category, attendees, onSelectVendor, vendors = CONF
                 {v.recommended && <Star size={10} color={PENN_BLUE} fill={PENN_BLUE} />}
               </div>
               <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
-                ~{fmt(v.perPerson.low)}–{fmt(v.perPerson.high)}/person
-                {attendees > 0 && <span style={{ color: PENN_BLUE, fontWeight: 600, marginLeft: 4 }}>≈ {fmt(midEst)} total</span>}
+                {hasPrice
+                  ? <span>~{fmt(v.perPerson.low)}–{fmt(v.perPerson.high)}/person{attendees > 0 && <span style={{ color: PENN_BLUE, fontWeight: 600, marginLeft: 4 }}>≈ {fmt(midEst)}</span>}</span>
+                  : <span style={{ color: "#bbb", fontStyle: "italic" }}>contact for pricing</span>
+                }
               </div>
               <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
                 {v.dietary.slice(0, 3).map((d) => <span key={d} style={{ fontSize: 9, background: "#ecfdf5", color: "#065f46", padding: "1px 6px", borderRadius: 6 }}>{d}</span>)}
