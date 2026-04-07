@@ -1773,10 +1773,70 @@ function DeadlinesView() {
 // ALL FUNDS REFERENCE
 // ============================================================
 
+const FIRSTS_STEPS = [
+  { letter: "F", word: "Form",      desc: "Form an agreement between 2+ G12 schools." },
+  { letter: "I", word: "Invite",    desc: "Invite more schools to participate." },
+  { letter: "R", word: "Register",  desc: "Register via the application at least 10 days in advance." },
+  { letter: "S", word: "Sell",      desc: "Sell/publicize in the GAPSA newsletter." },
+  { letter: "T", word: "Transact",  desc: "Transact via the Office of Student Affairs (OSA) or your G12 business office." },
+  { letter: "S", word: "Summarize", desc: "Summarize via an After-Action Review (AAR)." },
+];
+
 function FundsReference() {
   const [expanded, setExpanded] = useState(null);
+  const [showFirsts, setShowFirsts] = useState(false);
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
+
+      {/* ── F.I.R.S.T.S sidebar ───────────────────────────────── */}
+      {showFirsts && (
+        <>
+          <div onClick={() => setShowFirsts(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
+          <div style={{
+            position: "fixed", top: 0, right: 0, bottom: 0,
+            width: "min(440px, 100vw)", background: "#fff",
+            zIndex: 201, overflowY: "auto",
+            boxShadow: "-4px 0 32px rgba(0,0,0,0.18)",
+            display: "flex", flexDirection: "column",
+          }}>
+            <div style={{ background: "#0ea5e9", padding: "20px 24px", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>IPF Requirement</div>
+                <div style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>The F.I.R.S.T.S Framework</div>
+                <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
+                  Six steps every IPF-funded event must follow to qualify for funding.
+                </div>
+              </div>
+              <button onClick={() => setShowFirsts(false)}
+                style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer", flexShrink: 0 }}>
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ padding: "20px 24px", flex: 1 }}>
+              {FIRSTS_STEPS.map((s, i) => (
+                <div key={i} style={{ display: "flex", gap: 14, marginBottom: 16 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    background: "#0ea5e920", border: "2px solid #0ea5e940",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 800, fontSize: 16, color: "#0284c7",
+                  }}>
+                    {s.letter}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{s.word}</div>
+                    <div style={{ fontSize: 13, color: "#555", lineHeight: 1.5, marginTop: 2 }}>{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "12px 14px", marginTop: 8, fontSize: 12, color: "#0c4a6e" }}>
+                All six steps must be completed for the event to qualify for IPF funding and the GAPSA dollar-for-dollar match.
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       <h2 style={{ fontSize: 22, fontWeight: 700, color: PENN_BLUE, marginBottom: 4 }}>All Funding Sources</h2>
       <p style={{ color: "#666", fontSize: 14, marginBottom: 20 }}>Complete directory of GAPSA funding mechanisms.</p>
       {CONFIG.funds.map((fund) => (
@@ -1802,7 +1862,23 @@ function FundsReference() {
                 })}
                 {fund.requiresPartner && <Badge label="Multi-school required" color="amber" />}
               </div>
-              {fund.notes && <div style={{ fontSize: 12, color: "#999", marginTop: 8, fontStyle: "italic" }}>{fund.notes}</div>}
+              {fund.notes && (
+                <div style={{ fontSize: 12, color: "#999", marginTop: 8, fontStyle: "italic" }}>
+                  {fund.id === "ipf"
+                    ? <>
+                        Must span multiple graduate schools. Follow the{" "}
+                        <button onClick={() => setShowFirsts(true)} style={{
+                          background: "none", border: "none", padding: 0, cursor: "pointer",
+                          color: "#0284c7", fontWeight: 700, fontSize: 12, fontStyle: "italic",
+                          textDecoration: "underline", textDecorationStyle: "dotted",
+                        }}>
+                          F.I.R.S.T.S framework
+                        </button>
+                        . Register at least 10 days in advance.
+                      </>
+                    : fund.notes}
+                </div>
+              )}
               <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <a href={fund.applicationUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, background: PENN_BLUE, color: "#fff", padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>Apply <ExternalLink size={11} /></a>
                 {fund.rubricUrl && <a href={fund.rubricUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f3f4f6", color: "#333", padding: "7px 14px", borderRadius: 6, fontSize: 12, textDecoration: "none", border: "1px solid #ddd" }}>Rubric <ExternalLink size={11} /></a>}
