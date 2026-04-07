@@ -2807,14 +2807,22 @@ function FundingTab() {
   );
 }
 
-// ResourcesTab — Spending Limits + Forms & Links on one page
+// ResourcesTab — Spending Limits + Forms & Links
 function ResourcesTab() {
+  const [section, setSection] = useState("limits");
   return (
     <div>
-      <SpendingLimits />
-      <div style={{ borderTop: "2px solid #e5e7eb", marginTop: 48, paddingTop: 36 }}>
-        <FormsLinks />
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+        <SubNav
+          options={[
+            { id: "limits", label: "Spending Limits", icon: <DollarSign size={13} /> },
+            { id: "forms",  label: "Forms & Links",   icon: <ClipboardList size={13} /> },
+          ]}
+          active={section}
+          onChange={setSection}
+        />
       </div>
+      {section === "limits" ? <SpendingLimits /> : <FormsLinks />}
     </div>
   );
 }
