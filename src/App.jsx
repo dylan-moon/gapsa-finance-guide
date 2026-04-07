@@ -2850,10 +2850,33 @@ function ResourcesTab() {
   );
 }
 
-// GuideTab — How It Works timeline + Submission Calendar + Policy Quiz
+// GuideTab — How It Works timeline + Submission Calendar
 function GuideTab({ setMode }) {
+  const nextDeadline = getNextDeadline();
   return (
     <div>
+      {/* ── Condensed Event Timeline Checklist ───────────────── */}
+      <div style={{ maxWidth: 800, margin: "0 auto 36px" }}>
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 18 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 12px" }}>Event Timeline Checklist</h4>
+          {[
+            { time: "2–3 months out",    task: `Submit your funding application. Next GAPSA deadline: ${fmtDate(nextDeadline.date, { month: "long", day: "numeric" })}.` },
+            { time: "4 weeks out",       task: "Absolute minimum lead time. Register group with OSA. Complete Finance 101." },
+            { time: "3–4 weeks out",     task: "Submit payment requests for new vendors." },
+            { time: "2 weeks out",       task: "Submit event to GAPSA newsletter. Confirm alcohol registration if applicable (10 business days required)." },
+            { time: "1 week out",        task: "Submit payment requests for all known expenses." },
+            { time: "Day of event",      task: `Display GAPSA logo. Track attendance. Reserve 2 tickets for GAPSA reps if funded over ${fmt(CONFIG.compliance.auditThreshold)}.` },
+            { time: "Within 10 days",   task: "Submit any reimbursement requests with itemized receipts." },
+            { time: "By semester deadline", task: "Submit After-Action Review (AAR) — Dec 15 (fall) / May 15 (spring)." },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+              <div style={{ minWidth: 140, fontSize: 11, fontWeight: 600, color: PENN_RED, paddingTop: 2 }}>{item.time}</div>
+              <div style={{ fontSize: 12, color: "#444", lineHeight: 1.45 }}>{item.task}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <ProcessGuide setMode={setMode} />
 
       {/* ── Submission Calendar ───────────────────────────────── */}
@@ -2872,25 +2895,6 @@ function GuideTab({ setMode }) {
         <DeadlinesView />
       </div>
 
-      {/* ── Policy Quiz (Practice Mode) ──────────────────────── */}
-      <div style={{ maxWidth: 800, margin: "48px auto 0" }}>
-        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: 36, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <CheckCircle size={18} color={PENN_BLUE} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: PENN_BLUE, margin: 0 }}>
-              Practice Quiz
-            </h3>
-          </div>
-          <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
-            {QUIZ_QUESTIONS.length} questions covering the key rules every treasurer should know. Retake as many times as you like.
-          </p>
-        </div>
-        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#92400e", display: "flex", alignItems: "center", gap: 8 }}>
-          <CheckCircle size={14} color="#d97706" />
-          Ready to make it official? Visit the <strong style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => setMode("cert")}>Certification tab</strong> to earn your GAPSA Treasurer Certification (100% required).
-        </div>
-        <PolicyQuiz />
-      </div>
     </div>
   );
 }
@@ -2900,8 +2904,6 @@ function GuideTab({ setMode }) {
 // ============================================================
 
 function CertTab({ setMode }) {
-  const [showPractice, setShowPractice] = useState(false);
-
   const prepResources = [
     {
       icon: "ℹ️",
@@ -2926,59 +2928,18 @@ function CertTab({ setMode }) {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
 
-      {/* ── Practice quiz sidebar drawer ───────────────────────── */}
-      {showPractice && (
-        <>
-          <div onClick={() => setShowPractice(false)}
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
-          <div style={{
-            position: "fixed", top: 0, right: 0, bottom: 0,
-            width: "min(560px, 100vw)", background: "#f5f6f8",
-            zIndex: 201, overflowY: "auto",
-            boxShadow: "-4px 0 32px rgba(0,0,0,0.18)",
-            display: "flex", flexDirection: "column",
-          }}>
-            <div style={{ background: PENN_BLUE, padding: "18px 24px", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Practice Quiz</div>
-                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 }}>
-                  {QUIZ_QUESTIONS.length} questions · No record kept · Retake freely
-                </div>
-              </div>
-              <button onClick={() => setShowPractice(false)}
-                style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
-                <X size={16} />
-              </button>
-            </div>
-            <div style={{ padding: "24px", flex: 1 }}>
-              <PolicyQuiz />
-            </div>
-          </div>
-        </>
-      )}
-
       {/* ── Page header ───────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <CheckCircle size={22} color={PENN_BLUE} />
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, margin: 0 }}>
-              Treasurer Policy Certification
-            </h2>
-          </div>
-          <p style={{ color: "#555", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-            Score <strong>100%</strong> to earn your official GAPSA Finance Policy Certification.
-            Your name, organization, and completion time are submitted to the Finance Division.
-          </p>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <CheckCircle size={22} color={PENN_BLUE} />
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, margin: 0 }}>
+            Treasurer Policy Certification
+          </h2>
         </div>
-        <button onClick={() => setShowPractice(true)} style={{
-          background: "#fff", border: `2px solid ${PENN_BLUE}`, color: PENN_BLUE,
-          borderRadius: 8, padding: "9px 16px", cursor: "pointer",
-          fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
-          flexShrink: 0,
-        }}>
-          <BookOpen size={14} /> Practice First →
-        </button>
+        <p style={{ color: "#555", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+          Score <strong>100%</strong> to earn your official GAPSA Finance Policy Certification.
+          Your name, organization, and completion time are submitted to the Finance Division.
+        </p>
       </div>
 
       {/* ── Prep resources ────────────────────────────────────── */}
