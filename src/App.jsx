@@ -2221,36 +2221,34 @@ function ProcessGuide({ setMode }) {
           fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
           flexShrink: 0,
         }}>
-          <BookOpen size={14} /> See Example →
+          <BookOpen size={14} /> See example event
         </button>
       </div>
 
-      {/* Quick Resources box */}
-      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "14px 18px", marginBottom: 28 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Quick Resources</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <a href={CONFIG.resources.preferredVendorsUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            ⭐ Preferred Vendors <ExternalLink size={10} />
-          </a>
-          <a href={CONFIG.resources.newVendorOnboardingUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            New Vendor Onboarding <ExternalLink size={10} />
-          </a>
-          <a href={`mailto:${CONFIG.resources.ispOnboardingEmail}`}
-            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            ISP Onboarding (Speakers) <ExternalLink size={10} />
-          </a>
-          <a href={CONFIG.compliance.paymentRequestUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            Payment Request Form <ExternalLink size={10} />
-          </a>
-          <a href={CONFIG.resources.gapsaLogoUrl} target="_blank" rel="noreferrer"
-            style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fff", border: "1px solid #fcd34d", borderRadius: 6, padding: "4px 10px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            GAPSA Website <ExternalLink size={10} />
-          </a>
-        </div>
-      </div>
+      {/* ── Event Checklist ── */}
+      {(() => {
+        const nextDeadline = getNextDeadline();
+        return (
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 18, marginBottom: 28 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 12px" }}>Event Checklist</h4>
+            {[
+              { time: "2–3 months out",       task: `Submit your funding application. Next GAPSA deadline: ${fmtDate(nextDeadline.date, { month: "long", day: "numeric" })}.` },
+              { time: "4 weeks out",           task: "Absolute minimum lead time. Register group with OSA. Complete Finance 101." },
+              { time: "3–4 weeks out",         task: "Submit payment requests for new vendors." },
+              { time: "2 weeks out",           task: "Submit event to GAPSA newsletter. Confirm alcohol registration if applicable (10 business days required)." },
+              { time: "1 week out",            task: "Submit payment requests for all known expenses." },
+              { time: "Day of event",          task: `Display GAPSA logo. Track attendance. Reserve 2 tickets for GAPSA reps if funded over ${fmt(CONFIG.compliance.auditThreshold)}.` },
+              { time: "Within 10 days",        task: "Submit any reimbursement requests with itemized receipts." },
+              { time: "By semester deadline",  task: "Submit After-Action Review (AAR) — Dec 15 (fall) / May 15 (spring)." },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                <div style={{ minWidth: 140, fontSize: 11, fontWeight: 600, color: PENN_RED, paddingTop: 2 }}>{item.time}</div>
+                <div style={{ fontSize: 12, color: "#444", lineHeight: 1.45 }}>{item.task}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Vertical timeline */}
       <div style={{ position: "relative", paddingLeft: 52 }}>
@@ -2301,6 +2299,17 @@ function ProcessGuide({ setMode }) {
                   <li key={i} style={{ fontSize: 13, color: "#444", lineHeight: 1.65, marginBottom: 3 }}>{item}</li>
                 ))}
               </ul>
+              {phase.id === 2 && (
+                <div style={{ marginTop: 12 }}>
+                  <button data-tab="planner" style={{
+                    background: "#0ea5e9", color: "#fff", border: "none",
+                    borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+                    Build your budget in the Event Planner →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -2798,53 +2807,22 @@ function FundingTab() {
   );
 }
 
-// ResourcesTab — Spending Limits + Forms & Links
+// ResourcesTab — Spending Limits + Forms & Links on one page
 function ResourcesTab() {
-  const [section, setSection] = useState("limits");
   return (
     <div>
-      <div style={{ maxWidth: 860, margin: "0 auto" }}>
-        <SubNav
-          options={[
-            { id: "limits", label: "Spending Limits", icon: <DollarSign size={13} /> },
-            { id: "forms",  label: "Forms & Links",   icon: <ClipboardList size={13} /> },
-          ]}
-          active={section}
-          onChange={setSection}
-        />
+      <SpendingLimits />
+      <div style={{ borderTop: "2px solid #e5e7eb", marginTop: 48, paddingTop: 36 }}>
+        <FormsLinks />
       </div>
-      {section === "limits" ? <SpendingLimits /> : <FormsLinks />}
     </div>
   );
 }
 
 // GuideTab — How It Works timeline + Submission Calendar
 function GuideTab({ setMode }) {
-  const nextDeadline = getNextDeadline();
   return (
     <div>
-      {/* ── Condensed Event Timeline Checklist ───────────────── */}
-      <div style={{ maxWidth: 800, margin: "0 auto 36px" }}>
-        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 18 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, color: PENN_BLUE, margin: "0 0 12px" }}>Event Timeline Checklist</h4>
-          {[
-            { time: "2–3 months out",    task: `Submit your funding application. Next GAPSA deadline: ${fmtDate(nextDeadline.date, { month: "long", day: "numeric" })}.` },
-            { time: "4 weeks out",       task: "Absolute minimum lead time. Register group with OSA. Complete Finance 101." },
-            { time: "3–4 weeks out",     task: "Submit payment requests for new vendors." },
-            { time: "2 weeks out",       task: "Submit event to GAPSA newsletter. Confirm alcohol registration if applicable (10 business days required)." },
-            { time: "1 week out",        task: "Submit payment requests for all known expenses." },
-            { time: "Day of event",      task: `Display GAPSA logo. Track attendance. Reserve 2 tickets for GAPSA reps if funded over ${fmt(CONFIG.compliance.auditThreshold)}.` },
-            { time: "Within 10 days",   task: "Submit any reimbursement requests with itemized receipts." },
-            { time: "By semester deadline", task: "Submit After-Action Review (AAR) — Dec 15 (fall) / May 15 (spring)." },
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-              <div style={{ minWidth: 140, fontSize: 11, fontWeight: 600, color: PENN_RED, paddingTop: 2 }}>{item.time}</div>
-              <div style={{ fontSize: 12, color: "#444", lineHeight: 1.45 }}>{item.task}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <ProcessGuide setMode={setMode} />
 
       {/* ── Submission Calendar ───────────────────────────────── */}
