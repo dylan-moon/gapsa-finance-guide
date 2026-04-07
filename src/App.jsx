@@ -2442,6 +2442,43 @@ const QUIZ_QUESTIONS = [
     correct: 3,
     explanation: `Funding requests over ${fmt(CONFIG.compliance.financeCommitteeApprovalCap)} cannot be approved by the Finance Committee alone — they must go to the full GAPSA General Assembly. This process takes 8–12 weeks, so plan accordingly.`,
   },
+  // ── Fund-specific questions ───────────────────────────────────
+  {
+    question: "Which GAPSA fund is open to all OSA-registered graduate student groups and is the recommended starting point for most event funding requests?",
+    options: ["Empowerment Fund (EF)", "Student Group Event Fund (SGEF)", "Synergy Fund", "Affinity Partnership Fund (APF)"],
+    correct: 1,
+    explanation: `The ${CONFIG.funds.find((f) => f.id === "sgef").name} is GAPSA's most broadly accessible fund. It is open to all registered student groups and is the primary recommended fund for event funding — most applicants should start here.`,
+  },
+  {
+    question: "The Interschool Partnership Fund (IPF) offers what unique financial benefit compared to other GAPSA funds?",
+    options: ["A fixed $1,000 grant per event", "Dollar-for-dollar matching of the applying group's own investment", "Automatic General Assembly approval for large requests", "50% coverage of catering costs only"],
+    correct: 1,
+    explanation: `The ${CONFIG.funds.find((f) => f.id === "ipf").name} matches GAPSA's award dollar-for-dollar with the applying group's own contribution, making it especially powerful for large interschool events. It is co-recommended alongside SGEF for G12+ governments.`,
+  },
+  {
+    question: "What is the primary purpose of the Empowerment Fund (EF)?",
+    options: ["Funding individual student conference travel", "Covering speaker honoraria for all registered groups", "Providing an annual base operating budget to IDEAL Council member affinity groups", "Supporting multi-school partnership events"],
+    correct: 2,
+    explanation: `The ${CONFIG.funds.find((f) => f.id === "ef").name} provides an annual base/operating budget allocation for IDEAL Council member affinity groups. It is reviewed once per semester and should be applied for before using the Universal Funding Application.`,
+  },
+  {
+    question: "Which GAPSA fund specifically supports academic events such as conferences, symposia, and academic programming?",
+    options: ["Student Group Event Fund (SGEF)", "Synergy Fund", "Community Outreach Fund", "Academic Event Fund (AEF)"],
+    correct: 3,
+    explanation: `The ${CONFIG.funds.find((f) => f.id === "aef").name} is designed for academic events. It is reviewed every two weeks by the Research Council and uses the same Universal Funding Application as SGEF.`,
+  },
+  {
+    question: "The Community Outreach Fund is a pilot fund that prioritizes events in which location?",
+    options: ["Center City Philadelphia", "University City only", "West Philadelphia", "Any location in the tri-state area"],
+    correct: 2,
+    explanation: `The ${CONFIG.funds.find((f) => f.id === "community").name} supports West Philadelphia community initiatives — including fundraisers, volunteering events, and outreach programming. All registered graduate student groups are eligible to apply.`,
+  },
+  {
+    question: "Which type of organization is primarily eligible to apply for the Interschool Partnership Fund (IPF)?",
+    options: ["Any OSA-registered student group", "Individual graduate students seeking travel grants", "G12+ student governments running events that span multiple graduate schools", "IDEAL Council members only"],
+    correct: 2,
+    explanation: `The IPF is designed for G12+ student governments (school-level graduate governments) hosting events that involve genuine partnership across multiple Penn graduate schools. The event must follow the F.I.R.S.T.S framework.`,
+  },
 ];
 
 // certMode=true  → official certification: requires 100%, collects name/org, submits to Netlify
@@ -2862,26 +2899,120 @@ function GuideTab({ setMode }) {
 // CERTIFICATION TAB
 // ============================================================
 
-function CertTab() {
+function CertTab({ setMode }) {
+  const [showPractice, setShowPractice] = useState(false);
+
+  const prepResources = [
+    {
+      icon: "ℹ️",
+      label: "How It Works",
+      description: "The full 6-phase funding lifecycle — from ideation through after-action report.",
+      tab: "guide",
+    },
+    {
+      icon: "🔍",
+      label: "Funds Available",
+      description: "All 7 GAPSA funds — eligibility, purpose, and how to apply for each.",
+      tab: "funding",
+    },
+    {
+      icon: "💰",
+      label: "Spending Limits",
+      description: "Per-person caps, event-type rules, and compliance thresholds.",
+      tab: "resources",
+    },
+  ];
+
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <CheckCircle size={22} color={PENN_BLUE} />
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, margin: 0 }}>
-            Treasurer Policy Certification
-          </h2>
+
+      {/* ── Practice quiz sidebar drawer ───────────────────────── */}
+      {showPractice && (
+        <>
+          <div onClick={() => setShowPractice(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
+          <div style={{
+            position: "fixed", top: 0, right: 0, bottom: 0,
+            width: "min(560px, 100vw)", background: "#f5f6f8",
+            zIndex: 201, overflowY: "auto",
+            boxShadow: "-4px 0 32px rgba(0,0,0,0.18)",
+            display: "flex", flexDirection: "column",
+          }}>
+            <div style={{ background: PENN_BLUE, padding: "18px 24px", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Practice Quiz</div>
+                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 }}>
+                  {QUIZ_QUESTIONS.length} questions · No record kept · Retake freely
+                </div>
+              </div>
+              <button onClick={() => setShowPractice(false)}
+                style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ padding: "24px", flex: 1 }}>
+              <PolicyQuiz />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Page header ───────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <CheckCircle size={22} color={PENN_BLUE} />
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: PENN_BLUE, margin: 0 }}>
+              Treasurer Policy Certification
+            </h2>
+          </div>
+          <p style={{ color: "#555", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+            Score <strong>100%</strong> to earn your official GAPSA Finance Policy Certification.
+            Your name, organization, and completion time are submitted to the Finance Division.
+          </p>
         </div>
-        <p style={{ color: "#555", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-          Complete this quiz with a <strong>perfect score (100%)</strong> to receive your official GAPSA Finance Policy Certification.
-          Your name, organization, and completion record will be submitted to the GAPSA Finance Division.
+        <button onClick={() => setShowPractice(true)} style={{
+          background: "#fff", border: `2px solid ${PENN_BLUE}`, color: PENN_BLUE,
+          borderRadius: 8, padding: "9px 16px", cursor: "pointer",
+          fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
+          flexShrink: 0,
+        }}>
+          <BookOpen size={14} /> Practice First →
+        </button>
+      </div>
+
+      {/* ── Prep resources ────────────────────────────────────── */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "20px 24px", marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: PENN_BLUE, marginBottom: 4 }}>📚 Recommended Preparation</div>
+        <p style={{ fontSize: 13, color: "#666", margin: "0 0 16px" }}>
+          The certification covers all {QUIZ_QUESTIONS.length} questions below. Review these sections before your first attempt:
         </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {prepResources.map((r) => (
+            <div key={r.tab} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "11px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 9, gap: 12,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 20 }}>{r.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#111" }}>{r.label}</div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>{r.description}</div>
+                </div>
+              </div>
+              <button onClick={() => setMode(r.tab)} style={{
+                background: PENN_BLUE, color: "#fff", border: "none",
+                borderRadius: 6, padding: "6px 13px", cursor: "pointer",
+                fontSize: 12, fontWeight: 600, flexShrink: 0,
+              }}>
+                Review →
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", marginBottom: 28, fontSize: 13, color: "#1e40af" }}>
-        <strong>Note for treasurers:</strong> GAPSA recommends that all group treasurers complete this certification before submitting their first funding application. The certification covers spending limits, compliance rules, deadlines, and application requirements.
-      </div>
-
+      {/* ── Official certification quiz ───────────────────────── */}
       <PolicyQuiz certMode={true} />
     </div>
   );
@@ -2914,7 +3045,7 @@ export default function GAPSAFinanceWizard() {
         {mode === "funding"   && <FundingTab />}
         {mode === "guide"     && <GuideTab setMode={setMode} />}
         {mode === "resources" && <ResourcesTab />}
-        {mode === "cert"      && <CertTab />}
+        {mode === "cert"      && <CertTab setMode={setMode} />}
       </div>
 
       <div style={{ textAlign: "center", padding: "18px", borderTop: "1px solid #e5e7eb", background: "#fff", fontSize: 12, color: "#aaa" }}>
