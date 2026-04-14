@@ -368,6 +368,7 @@ const CONFIG = {
       label: "Professional Student Travel Grants",
       eligible: "DMD, EdD, JD, MD, MSE, MS (non-research Master's programs)",
       covers: "Travel for conferences, case competitions, externships, internships",
+      competitive: true,
       caps: {
         attendingOnly: { max: 500,  percentCap: 75, label: "Attending (not presenting)" },
         presenting:    { max: 1250, percentCap: 75, label: "Presenting / interview / internship" },
