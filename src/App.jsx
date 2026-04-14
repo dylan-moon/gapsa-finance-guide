@@ -380,6 +380,7 @@ const CONFIG = {
       label: "Research Student Travel Grants",
       eligible: "PhD or research Master's (AM or MS) programs",
       covers: "Presenting at academic conferences, workshops, meetings",
+      competitive: true,
       caps: {
         attendingOnly: { max: 1000, percentCap: 50, label: "Attending (not presenting)", avgAward: 650 },
         presenting:    { max: 2000, percentCap: null, label: "Presenting", avgAward: 1300 },
@@ -812,11 +813,18 @@ function FundingWizard() {
               <span style={{ fontWeight: 700, fontSize: 15, color: PENN_BLUE }}>
                 {fmt(cap.max)}
                 {cap.percentCap && <span style={{ fontSize: 11, color: "#888", marginLeft: 4 }}>(or {cap.percentCap}%)</span>}
-                {cap.avgAward && <span style={{ fontSize: 11, color: "#888", marginLeft: 4 }}>· avg {fmt(cap.avgAward)}</span>}
+                {cap.avgAward && <span style={{ fontSize: 11, color: "#888", marginLeft: 4 }}>· typical {fmt(cap.avgAward)}</span>}
               </span>
             </div>
           ))}
-          <div style={{ marginTop: 14 }}>
+          {grantInfo.competitive && (
+            <div style={{ marginTop: 10 }}>
+              <Alert type="warning">
+                <strong>Competitive funding — not guaranteed.</strong> The figures above are caps, not standard awards. Grants are awarded based on available funds and application merit. Typical awards are shown for reference only.
+              </Alert>
+            </div>
+          )}
+          <div style={{ marginTop: 10 }}>
             <Alert type="info"><strong>Payment:</strong> {grantInfo.payment}{grantInfo.note && <><br /><em>{grantInfo.note}</em></>}</Alert>
           </div>
         </div>
@@ -1898,11 +1906,16 @@ function FundsReference() {
             {Object.values(grant.caps).map((cap, i) => (
               <div key={i} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
                 <div style={{ fontSize: 11, color: "#888" }}>{cap.label}</div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: PENN_BLUE }}>{fmt(cap.max)}</div>
-                {"avgAward" in cap && <div style={{ fontSize: 10, color: "#aaa" }}>avg {fmt(cap.avgAward)}</div>}
+                <div style={{ fontWeight: 700, fontSize: 16, color: PENN_BLUE }}>{fmt(cap.max)} cap</div>
+                {"avgAward" in cap && <div style={{ fontSize: 10, color: "#aaa" }}>typical {fmt(cap.avgAward)}</div>}
               </div>
             ))}
           </div>
+          {grant.competitive && (
+            <div style={{ marginTop: 12, fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 7, padding: "8px 12px" }}>
+              <strong>Competitive — not guaranteed.</strong> Amounts shown are maximums, not standard awards. Grants are allocated based on available funds and application merit. Typical awards are shown for reference.
+            </div>
+          )}
         </div>
       ))}
     </div>
