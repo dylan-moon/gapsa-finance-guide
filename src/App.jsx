@@ -1339,6 +1339,13 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
                 </Alert>
               </div>
             )}
+            {isTicketed === true && hasAlcohol && (
+              <div style={{ marginTop: 10 }}>
+                <Alert type="danger">
+                  <strong>Ticketed alcohol events cannot be held on Penn property.</strong> Selling tickets to an event where alcohol is served requires a venue with its own liquor license. You must book an off-campus venue licensed by the PA Liquor Control Board — Penn campus locations (Houston Hall, Perelman Quad, etc.) are not permitted. Confirm the venue's license before signing any contracts.
+                </Alert>
+              </div>
+            )}
           </div>
 
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
@@ -1642,6 +1649,7 @@ ${gapsaAmountNum > 0 ? `<div class="gapsa-box" style="margin-top:20px"><strong>G
               "Display the GAPSA logo on all promotional materials.",
               hasAlcohol && "Food must be served alongside any alcohol.",
               hasAlcohol && "Maximum 2 alcoholic drinks per person.",
+              hasAlcohol && isTicketed && <span><strong style={{ color: PENN_RED }}>Off-campus venue required:</strong> ticketed events with alcohol must be held at a venue with its own liquor license — Penn campus locations are not permitted.</span>,
               isTicketed && totalBudget > 0 && gapsaAmountNum / totalBudget > CONFIG.compliance.eventbriteThreshold
                 && <span>Ticketed event: GAPSA funds {">"}40% of budget — must use <strong>Graduate Events Eventbrite</strong> account.{" "}<a href={CONFIG.compliance.eventbriteRequestUrl} target="_blank" rel="noreferrer" style={{ color: PENN_BLUE }}>Request access →</a></span>,
               isTicketed && totalBudget > 0 && gapsaAmountNum / totalBudget <= CONFIG.compliance.eventbriteThreshold
